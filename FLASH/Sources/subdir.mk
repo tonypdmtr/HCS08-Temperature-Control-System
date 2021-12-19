@@ -4,7 +4,7 @@
 
 -include ../makefile.local
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 ASM_SRCS += \
 ../Sources/ADC.asm \
 ../Sources/Date_Time.asm \
@@ -87,7 +87,7 @@ Sources/ADC_asm.obj: ../Sources/ADC.asm
 
 Sources/%.d: ../Sources/%.asm
 	@echo 'Regenerating dependency file: $@'
-	
+
 	@echo ' '
 
 Sources/Date_Time_asm.obj: ../Sources/Date_Time.asm
@@ -145,5 +145,3 @@ Sources/main_asm.obj: ../Sources/main.asm
 	"$(HC08ToolsEnv)/ahc08" -ArgFile"Sources/main.args" -Objn"Sources/main_asm.obj" "$<" -Lm="$(@:%.obj=%.d)" -LmCfg=xilmou
 	@echo 'Finished building: $<'
 	@echo ' '
-
-

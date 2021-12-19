@@ -1,0 +1,366 @@
+;*******************************************************************************
+                    #RAM
+;*******************************************************************************
+
+?cntr2              rmb       1
+
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+                    #spauto
+
+col_read            proc
+                    jsr       bus_input
+                    bsr       Y3_setup
+                    bclr      STROBE
+                    lda       PTBD                ; AND PTBD with 11110000 so that only D0,D1,D2,D3 are left
+                    and       col_mask
+                    ora       #%00001000
+                    sta       PTBD
+                    bset      STROBE
+                    jmp       bus_output
+
+;*******************************************************************************
+
+                    #spauto
+
+row_input           proc
+                    bsr       Y2_setup
+                    bclr      STROBE
+                    bset      STROBE
+                    rts
+
+row1_input          jsr       bus_output
+                    mov       #%11101000,PTBD     ; send 1110 into the bus
+                    bra       row_input
+
+row2_input          jsr       bus_output
+                    mov       #%11011000,PTBD     ; send 1101 into the bus
+                    bra       row_input
+
+row3_input          jsr       bus_output
+                    mov       #%10111000,PTBD     ; send 1011 into the bus
+                    bra       row_input
+
+row4_input          jsr       bus_output
+                    mov       #%01111000,PTBD     ; send 0111 into the bus
+                    bsr       row_input
+                    rts
+
+Y2_setup            bclr      Y3
+                    bset      Y2                  ; set up Y2 as a Low
+                    bclr      2,PTBD
+                    rts
+
+Y3_setup            bset      Y3                  ; set up Y3 as a low
+                    bset      Y2
+                    bclr      2,PTBD
+                    rts
+
+read_keypad         mov       #15,n
+                    mov       #83,?cntr2
+                    mov       #83,cntr3
+                    mov       #83,cntr4
+                    mov       #%11111000,col_mask
+                    mov       #%11101000,col4     ; set up column compare values
+                    mov       #%11011000,col3
+                    mov       #%10111000,col2
+                    mov       #%01111000,col1
+                    bsr       row1_input
+                    bsr       col_read
+                    bsr       row1_check
+
+                    bsr       row2_input
+                    bsr       col_read
+                    bsr       row2_check
+
+                    bsr       row3_input
+                    bsr       col_read
+                    bsr       row3_check
+
+                    bsr       row4_input
+                    bsr       col_read
+                    jsr       row4_check
+                    lda       n
+                    sub       #15
+                    bmi       end_keypad
+                    bra       read_keypad
+
+end_keypad
+                    rts
+
+row1_check
+                    lda       PTBD
+                    cmp       col1                ; Compare to 0111 0000 to see if the first column was pressed (1,4,7,*)
+                    beq       pressA
+                    cmp       col2                ; Compare to 1011 0000 to see if the first column was pressed (2,5,8,0)
+                    beq       pressB
+                    cmp       col3                ; Compare to 1101 0000 to see if the first column was pressed (3,6,9,#)
+                    beq       pressC
+                    cmp       col4                ; Compare to 1110 0000 to see if the first column was pressed (A,B,C,D)
+                    beq       pressD
+                    sta       PTBD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+pressA              proc
+                    jsr       write_A
+                    mov       #10,n
+;                   mov       #%10100000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    jmp       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+pressB              proc
+                    jsr       write_B
+                    mov       #11,n
+;                   mov       #%10110000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    jmp       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+pressC              proc
+                    jsr       write_C
+                    mov       #12,n
+;                   mov       #%11000000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    jmp       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+pressD              proc
+                    jsr       write_D
+                    mov       #13,n
+;                   mov       #%11010000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    jmp       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+row2_check          proc
+                    lda       PTBD
+                    cbeq      col1,press3         ; Compare to 0111 0000 to see if the first column was pressed (1,4,7,*)
+                    cbeq      col2,press6         ; Compare to 1011 0000 to see if the first column was pressed (2,5,8,0)
+                    cbeq      col3,press9         ; Compare to 1101 0000 to see if the first column was pressed (3,6,9,#)
+                    cbeq      col4,presspound     ; Compare to 1110 0000 to see if the first column was pressed (A,B,C,D)
+                    sta       PTBD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+press3              proc
+                    mov       #3,n
+                    jsr       write_3
+;                   mov       #%00110000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press6              proc
+                    mov       #6,n
+                    jsr       write_6
+;                   mov       #%01100000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press9              proc
+                    mov       #9,n
+                    jsr       write_9
+;                   mov       #%10010000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+presspound          proc
+                    jsr       write_pound
+                    mov       #1,press_pound
+                    mov       #14,n
+;                   mov       #%11110000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+row3_check          proc
+                    lda       PTBD
+                    cbeq      col1,press2         ; Compare to 0111 0000 to see if the first column was pressed (1,4,7,*)
+                    cbeq      col2,press5         ; Compare to 1011 0000 to see if the first column was pressed (2,5,8,0)
+                    cbeq      col3,press8         ; Compare to 1101 0000 to see if the first column was pressed (3,6,9,#)
+                    cbeq      col4,press0         ; Compare to 1110 0000 to see if the first column was pressed (A,B,C,D)
+                    sta       PTBD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+press2              proc
+                    mov       #2,n
+                    jsr       write_2
+;                   mov       #%00101000,PTBD
+;                   bclr      STROBE
+;                   bset      STROBE
+;                   mov       #%00001000,PTBD
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press5              proc
+                    mov       #5,n
+                    jsr       write_5
+;                   mov       #%01010000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press8              proc
+                    mov       #8,n
+                    jsr       write_8
+;                   mov       #%10000000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press0              proc
+                    clr       n
+                    jsr       write_0
+;                   bclr      4,PTBD
+;                   bclr      5,PTBD
+;                   bclr      STROBE
+;                   bset      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+row4_check          proc
+                    lda       PTBD
+                    cbeq      col1,press1         ; Compare to 0111 0000 to see if the first column was pressed (1,4,7,*)
+                    cbeq      col2,press4         ; Compare to 1011 0000 to see if the first column was pressed (2,5,8,0)
+                    cbeq      col3,press7         ; Compare to 1101 0000 to see if the first column was pressed (3,6,9,#)
+                    cbeq      col4,pressstar      ; Compare to 1110 0000 to see if the first column was pressed (A,B,C,D)
+                    sta       PTBD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+press1              proc
+                    mov       #1,n
+                    jsr       write_1
+;                   mov       #1,state
+;                   mov       #%00011000,PTBD
+;                   bclr      STROBE
+;                   bset      STROBE
+;                   mov       #%00001000,PTBD
+                    bsr       delay_loop
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+press4              proc
+                    mov       #4,n
+                    jsr       write_4
+;                   mov       #%01000000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+press7              proc
+                    mov       #7,n
+                    jsr       write_7
+;                   mov       #%01110000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+                    bra       delay_loop
+
+;*******************************************************************************
+
+                    #spauto
+
+pressstar           proc
+                    jsr       write_star
+                    clr       state
+                    bsr       delay_loop
+                    jmp       MainLoop
+
+;                   jsr       write_E
+;                   mov       #%11100000,PTBD
+;                   bset      STROBE
+;                   bclr      STROBE
+;                   rts
+
+;*******************************************************************************
+
+                    #spauto
+
+delay_loop          proc
+_2@@                dbnz      ?cntr2,_3@@
+                    mov       #83,?cntr2
+                    rts
+
+_3@@                dbnz      cntr3,_4@@
+                    mov       #83,cntr3
+                    bra       _2@@
+
+_4@@                dbnz      cntr4,_4@@
+                    mov       #83,cntr4
+                    bra       _3@@
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

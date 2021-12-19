@@ -1,0 +1,275 @@
+;*******************************************************************************
+; Project     : DeviceInitialization
+; Processor   : MC9S08QG8CPB
+; Version     : Component 01.262, Driver 01.08, CPU db: 3.00.012
+; Datasheet   : MC9S08QG8 Rev. 4 2/2008
+; Date/Time   : 2016-01-26, 17:43, # CodeGen: 1
+; Abstract    :
+;     This module contains device initialization code
+;     for selected on-chip peripherals.
+; Contents    :
+;     Function "MCU_init" initializes selected peripherals
+;
+; Copyright : 1997 - 2011 Freescale Semiconductor, Inc. All Rights Reserved.
+;
+; http      : www.freescale.com
+; mail      : support@freescale.com
+;*******************************************************************************
+
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+;*******************************************************************************
+; Method      :  MCU_init (component MC9S08QG8_16)
+;
+; Description :
+;     Device initialization code for selected peripherals.
+
+                    #spauto
+
+MCU_init            proc
+          ; ### MC9S08QG8_16 "Cpu" init code ...
+          ; Common initialization of the write once registers
+          ; SOPT1: COPE=0,COPT=1,STOPE=0,BKGDPE=1,RSTPE=0
+                    lda       #$52
+                    sta       SOPT1
+          ; SPMSC1: LVDF=0,LVDACK=0,LVDIE=0,LVDRE=1,LVDSE=1,LVDE=1,BGBE=0
+                    lda       #$1C
+                    sta       SPMSC1
+          ; SPMSC2: PDF=0,PPDF=0,PPDACK=0,PDC=0,PPDC=0
+                    clra
+                    sta       SPMSC2
+          ; SPMSC3: LVDV=0,LVWV=0
+                    lda       SPMSC3
+                    and       #$CF
+                    sta       SPMSC3
+          ; System clock initialization
+          ; Test if the device trim value is stored on the specified address
+                    lda       $FFAF
+                    cbeqa     #$FF,_1@@
+          ; ICSTRM: Initialize internal clock trim from a non volatile memory
+                    lda       $FFAF
+                    sta       ICSTRM
+          ; ICSSC: Initialize internal clock trim from a non volatile memory
+                    lda       $FFAE
+                    sta       ICSSC
+_1@@
+          ; ICSC1: CLKS=0,RDIV=0,IREFS=1,IRCLKEN=0,IREFSTEN=0
+                    mov       #$04,ICSC1          ; Initialization of the ICS control register 1
+          ; ICSC2: BDIV=1,RANGE=0,HGO=0,LP=0,EREFS=0,ERCLKEN=0,EREFSTEN=0
+                    mov       #$40,ICSC2          ; Initialization of the ICS control register 2
+
+          ; Common initialization of the CPU registers
+          ; PTASE: PTASE4=1,PTASE3=1,PTASE2=1,PTASE1=1,PTASE0=1
+                    lda       PTASE
+                    ora       #$1F
+                    sta       PTASE
+          ; PTBSE: PTBSE7=1,PTBSE6=1,PTBSE5=1,PTBSE4=1,PTBSE3=1,PTBSE2=1,PTBSE1=1,PTBSE0=1
+                    lda       #$FF
+                    sta       PTBSE
+          ; PTADS: PTADS5=0,PTADS4=0,PTADS3=0,PTADS2=0,PTADS1=0,PTADS0=0
+                    clra
+                    sta       PTADS
+          ; PTBDS: PTBDS7=0,PTBDS6=0,PTBDS5=0,PTBDS4=0,PTBDS3=0,PTBDS2=0,PTBDS1=0,PTBDS0=0
+                    sta       PTBDS
+          ; ### Init_TPM init code
+          ; TPMSC: TOF=0,TOIE=0,CPWMS=0,CLKSB=0,CLKSA=0,PS2=0,PS1=0,PS0=0
+                    clr       TPMSC               ; Stop and reset counter
+                    ldhx      #$00
+                    sthx      TPMMOD              ; Period value setting
+                    lda       TPMSC               ; Overflow int. flag clearing (first part)
+          ; TPMSC: TOF=0,TOIE=1,CPWMS=0,CLKSB=0,CLKSA=1,PS2=0,PS1=0,PS0=0
+                    mov       #$48,TPMSC          ; Int. flag clearing (2nd part) and timer control register setting
+          ; ###
+                    cli                           ; Enable interrupts
+                    rts
+
+;*******************************************************************************
+; Interrupt handler : isrVtpmovf
+;
+; Description :
+;     User interrupt service routine.
+; Parameters  : None
+; Returns     : Nothing
+
+                    #spauto
+
+isrVtpmovf          proc
+                    inc       cntr1
+                    lda       cntr1
+                    cbeqa     #64,toggle
+                    bclr      7,TPMSC
+                    rti
+
+;*******************************************************************************
+
+                    #spauto
+
+C_method            proc
+                    jsr       clear_display
+                    jsr       write_Holding_at
+                    jsr       write_space
+                    lda       temp_tens
+                    add       #48
+                    sta       tens
+                    lda       temp_ones
+                    add       #48
+                    sta       ones
+                    jsr       lcd_temp_mark
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       final_temp
+                    sub       c_temp
+                    beq       DoNothing@@
+                    bpl       CoolDown@@
+                    bmi       HeatUp@@
+                    clr       state
+                    bra       toggle2
+
+DoNothing@@         clr       state
+                    bra       toggle2
+
+CoolDown@@          mov       #2,state
+                    bra       toggle2
+
+HeatUp@@            mov       #1,state
+                    bra       toggle2
+
+;*******************************************************************************
+
+                    #spauto
+
+overheat_check      proc
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    lda       final_temp
+                    sub       #50
+                    bmi       toggle1
+                    clr       state
+                    jsr       clear_display
+                    jsr       write_overtemp
+                    jsr       second_line
+                    jsr       write_T92
+                    bra       toggle2
+
+;*******************************************************************************
+
+C_method_jump       bra       C_method
+
+;*******************************************************************************
+
+                    #spauto
+
+toggle              proc
+                    mov       PTBD,ptbd_temp
+                    mov       PTBDD,ptbdd_temp
+                    mov       #$FF,PTBDD
+                    bra       overheat_check
+
+;*******************************************************************************
+
+                    #spauto
+
+toggle1             proc
+                    lda       c_hold
+                    cbeqa     #1,C_method_jump
+
+toggle2             lda       onoff
+                    beq       ToggleOn@@
+                    cbeqa     #1,ToggleOff@@
+
+ToggleOn@@          lda       state
+                    cbeqa     #1,Heat@@
+                    cbeqa     #2,Cool@@
+                    lda       #%10001000
+                    sta       PTBD
+
+_2@@                lda       PTBD
+                    and       #%11111111
+                    sta       PTBD
+                    bclr      3,PTBD
+                    bset      3,PTBD
+
+                    clr       cntr1
+                    lda       #1
+                    sta       onoff
+                    lda       ptbd_temp
+                    sta       PTBD
+                    lda       ptbdd_temp
+                    sta       PTBDD
+                    bclr      7,TPMSC
+                    rti
+
+Heat@@              mov       #%10011000,PTBD
+                    lda       onoff
+                    beq       _2@@
+                    cbeqa     #1,_3@@
+
+Cool@@              mov       #%10101000,PTBD
+                    lda       onoff
+                    beq       _2@@
+                    cbeqa     #1,_3@@
+
+ToggleOff@@         lda       state
+                    cbeqa     #1,Heat@@
+                    cbeqa     #2,Cool@@
+                    mov       #%00001000,PTBD
+
+_3@@                lda       PTBD
+                    and       #%01111111
+                    sta       PTBD
+                    bclr      3,PTBD
+                    bset      3,PTBD
+
+                    clr       cntr1
+                    clr       onoff
+                    mov       ptbd_temp,PTBD
+                    mov       ptbdd_temp,PTBDD
+                    bclr      7,TPMSC
+                    rti
+
+;*******************************************************************************
+                    #VECTORS
+;*******************************************************************************
+; Initialization of the CPU registers in FLASH
+
+                    org       NVPROT
+;                   fcb       $FF                 ; NVPROT: FPS6=1,FPS5=1,FPS4=1,FPS3=1,FPS2=1,FPS1=1,FPS0=1,FPDIS=1
+
+                    org       NVOPT
+;                   fcb       $7E                 ; NVOPT: KEYEN=0,FNORED=1,SEC01=1,SEC00=0
+
+                                                  ; Interrupt vector table
+UNASSIGNED_ISR      def       $FFFF               ; unassigned interrupt service routine
+
+                    org       $FFD0               ; Interrupt vector table
+
+                    dw        UNASSIGNED_ISR      ; Int.no. 23 Vrti (at FFD0) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 22 VReserved22 (at FFD2) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 21 VReserved21 (at FFD4) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 20 Vacmp (at FFD6) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 19 Vadc (at FFD8) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 18 Vkeyboard (at FFDA) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 17 Viic (at FFDC) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 16 Vscitx (at FFDE) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 15 Vscirx (at FFE0) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 14 Vscierr (at FFE2) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 13 Vspi (at FFE4) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 12 Vmtim (at FFE6) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 11 VReserved11 (at FFE8) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 10 VReserved10 (at FFEA) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 9 VReserved9 (at FFEC) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 8 VReserved8 (at FFEE) Unassigned
+                    dw        isrVtpmovf          ; Int.no. 7 Vtpmovf (at FFF0) Used
+                    dw        UNASSIGNED_ISR      ; Int.no. 6 Vtpmch1 (at FFF2) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 5 Vtpmch0 (at FFF4) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 4 VReserved4 (at FFF6) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 3 Vlvd (at FFF8) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 2 Virq (at FFFA) Unassigned
+                    dw        UNASSIGNED_ISR      ; Int.no. 1 Vswi (at FFFC) Unassigned
+;                   dw        _Startup            ; Int.no.  0 Vreset (at FFFE) Reset vector
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

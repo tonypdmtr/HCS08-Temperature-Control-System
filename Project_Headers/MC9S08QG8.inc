@@ -11,7 +11,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1933,8 +1933,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 

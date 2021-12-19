@@ -1,0 +1,1075 @@
+;*******************************************************************************
+                    #RAM
+;*******************************************************************************
+
+?cntr1              rmb       1
+?cntr2              rmb       1
+
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+init_LCD            proc
+                    mov       #13,?cntr1          ; Power On
+                    mov       #238,?cntr2
+                    jsr:3     Delay5ms            ; 15ms delay
+
+                    mov       #%11111111,PTADD    ; set data direction for for 0-7 in port A to an output
+                    mov       #%11110000,PTAD     ; set RS and R/W to 0
+                    jsr       Delay5ms
+                    jsr       bus_output
+                    mov       #%00111000,PTBD     ; Function Set Command (8-bit Interface)
+                    jsr       EN_clock
+
+                    jsr       Delay5ms            ; wait at least 4.1 ms
+
+                    mov       #%00111000,PTBD     ; Funtion Set Command (8-Bit Interface)
+                    jsr       EN_clock
+
+                    jsr       Delay5ms            ; wait more than 100 us
+
+                    mov       #%00111000,PTBD     ; Funtion Set Command (8-Bit Interface)
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00101000,PTBD     ; Function Set: Sets interface to 4-bit
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00101000,PTBD     ; Step 1: Function Set
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%10001000,PTBD     ; N = 1 (2 lines) F = 0 (font set)
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00001000,PTBD     ; Step 2: Display Off
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%10001000,PTBD
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00001000,PTBD     ; Step 3: Clear Display
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%00011000,PTBD
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00001000,PTBD     ; Step 4: Entry Mode Set
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%01101000,PTBD     ; I/D = 1 (Cursor/Blink moves to the right) S = 0 (Shifting of entire display is not performed)
+                    jsr       EN_clock
+
+                    jsr       Delay5ms
+
+                    mov       #%00001000,PTBD     ; Step 5: Display On
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%11111000,PTBD     ; C = 1 (Cursor ON) B = 1 (Blink ON)
+                    jsr       EN_clock
+                    jsr       Delay5ms
+
+                    mov       #%11110010,PTAD     ; set RS to 1 (to start writing characters)
+                    rts
+
+;*******************************************************************************
+
+clear_display       proc
+                    bclr      1,PTAD
+                    mov       #%00001000,PTBD     ; Step 3: Clear Display
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%00011000,PTBD
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    bset      1,PTAD
+                    rts
+
+;*******************************************************************************
+
+reset_cursor        proc
+                    bclr      1,PTAD
+                    mov       #%10001000,PTBD
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%00001000,PTBD
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    bset      1,PTAD
+                    rts
+
+;*******************************************************************************
+
+second_line         proc
+                    bclr      1,PTAD
+                    mov       #%11001000,PTBD     ; go to second line
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       #%00001000,PTBD
+                    jsr       EN_clock
+                    bset      1,PTAD
+                    jmp       Delay5ms
+
+;*******************************************************************************
+
+lcd_pwm             proc
+                    mov       tens,PTBD           ; write tens place
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       tens
+                    nsa
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+
+                    jsr       write_period
+
+                    mov       ones,PTBD           ; write ones place
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       ones
+                    nsa
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jmp       Delay5ms
+
+;*******************************************************************************
+
+write               proc
+                    mov       highbyte,PTBD
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    mov       lowbyte,PTBD
+                    jsr       EN_clock
+                    jmp       Delay5ms
+
+;*******************************************************************************
+; Phrases
+;*******************************************************************************
+
+?msg                macro
+                    mset      #','
+                    ldhx      #Msg$$$
+          #ifb ~2~
+                    !jmp      Print
+          #else
+                    !jsr      Print
+                    bra       Done$$$
+          #endif
+Msg$$$              fcs       ~1~
+Done$$$             endm
+
+;*******************************************************************************
+
+write_Enter_Tset    @?msg     'Enter Tset?'
+write_Enter_10_40C  @?msg     'Enter 10-40 C'
+write_Heating_to    @?msg     'Heating to '
+write_Cooling_to    @?msg     'Cooling to '
+write_A_TEC_off     @?msg     'A:TEC off '
+          ;-------------------------------------- ; Menu B
+write_TEC_function  @?msg     'TEC function?'
+write_1_Heat_0_Cool @?msg     '1-Heat, 0-Cool'
+write_Time_in_seconds @?msg   'Time in seconds?'
+write_Enter_0_180   @?msg     'Enter 0-180 '
+write_Heating_t     @?msg     'Heating t='
+write_Cooling_t     @?msg     'Cooling t='
+write_B_TEC_off     @?msg     'B:TEC off '
+          ;-------------------------------------- ; Menu C
+write_Target_Temp   @?msg     'Target Temp?'
+write_Holding_at    @?msg     'Holding at'
+write_overtemp      @?msg     'OVERTEMP:TEC OFF'
+          ;-------------------------------------- ; Other Phrases
+write_error         @?msg     'error '
+write_Mode_ABC      @?msg     'Mode: A,B,C?'
+write_TEC_state     @?msg     'TEC state:  ',-
+                    lda       state
+                    beq       write_off
+                    cbeqa     #1,write_heat
+                    cbeqa     #2,write_cool
+                    rts
+
+;*******************************************************************************
+write_off           @?msg     'off '
+write_heat          @?msg     'heat '
+write_cool          @?msg     'cool '
+write_T92           @?msg     'T92: ',-
+                    jsr       temp_write
+                    jmp       write_space
+
+;*******************************************************************************
+
+write_KatT          @?msg     'K@T='
+write_month         @?msg     'Month='
+write_date          @?msg     'Date='
+write_year          @?msg     'Year='
+write_hour          @?msg     'Hour='
+write_min           @?msg     'Minutes='
+write_sec           @?msg     'Seconds='
+write_req           @?msg     'Req Out='
+write_actual        @?msg     'Actual Out='
+write_entern        @?msg     'Enter n: '
+
+;*******************************************************************************
+
+Print               proc
+                    push
+Loop@@              lda       ,x
+                    beq       Done@@
+                    bsr       PrintChar
+                    inx
+                    bra       Loop@@
+Done@@              pull
+                    rts
+
+;*******************************************************************************
+
+PrintChar           proc
+                    pshhx
+                    ldhx      #Table@@            ;HX -> table of character handlers
+Loop@@              tst       ,x
+                    beq       Done@@              ;exit on end-of-table
+                    cbeq      x+,Found@@          ;if character found, go process
+                    aix       #2                  ;skip remaining table row bytes
+                    bra       Loop@@
+Found@@             ldhx      ,x                  ;HX -> character action routine
+                    jsr       ,x                  ;call character action routine
+Done@@              pulhx
+                    rts
+
+;-------------------------------------------------------------------------------
+
+?                   macro     char,routine
+                    mset      #','
+                    fcb       ~1~
+                    dw        ~2~
+                    endm
+
+Table@@             @?        '-',write_dash
+                    @?        '.',write_period
+                    @?        ' ',write_space
+                    @?        '=',write_equal
+                    @?        ':',write_colon
+                    @?        '/',write_slash
+                    @?        '@',write_at
+                    @?        ',',write_comma
+                    @?        '?',write_question_mark
+                    @?        '#',write_pound
+                    @?        '*',write_star
+                    @?        'a',write_a
+                    @?        'b',write_b
+                    @?        'c',write_c
+                    @?        'd',write_d
+                    @?        'e',write_e
+                    @?        'f',write_f
+                    @?        'g',write_g
+                    @?        'h',write_h
+                    @?        'i',write_i
+                    @?        'j',write_j
+                    @?        'k',write_k
+                    @?        'l',write_l
+                    @?        'm',write_m
+                    @?        'n',write_n
+                    @?        'o',write_o
+                    @?        'p',write_p
+                    @?        'q',write_q
+                    @?        'r',write_r
+                    @?        's',write_s
+                    @?        't',write_t
+                    @?        'u',write_u
+                    @?        'v',write_v
+                    @?        'w',write_w
+                    @?        'x',write_x
+                    @?        'y',write_y
+                    @?        'z',write_z
+                    @?        'A',write_A
+                    @?        'B',write_B
+                    @?        'C',write_C
+                    @?        'D',write_D
+                    @?        'E',write_E
+                    @?        'F',write_F
+                    @?        'G',write_G
+                    @?        'H',write_H
+                    @?        'I',write_I
+                    @?        'J',write_J
+                    @?        'K',write_K
+                    @?        'L',write_L
+                    @?        'M',write_M
+                    @?        'N',write_N
+                    @?        'O',write_O
+                    @?        'P',write_P
+                    @?        'Q',write_Q
+                    @?        'R',write_R
+                    @?        'S',write_S
+                    @?        'T',write_T
+                    @?        'U',write_U
+                    @?        'V',write_V
+                    @?        'W',write_W
+                    @?        'X',write_X
+                    @?        'Y',write_Y
+                    @?        'Z',write_Z
+                    @?        '0',write_0
+                    @?        '1',write_1
+                    @?        '2',write_2
+                    @?        '3',write_3
+                    @?        '4',write_4
+                    @?        '5',write_5
+                    @?        '6',write_6
+                    @?        '7',write_7
+                    @?        '8',write_8
+                    @?        '9',write_9
+                    fcb       0                   ;table terminator
+
+;*******************************************************************************
+; Characters
+;*******************************************************************************
+
+write_dash          proc
+                    mov       #%00101000,highbyte
+                    mov       #%11011000,lowbyte
+?write              jmp       write
+
+;*******************************************************************************
+
+write_period        proc
+                    mov       #%00101000,highbyte
+                    mov       #%11101000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_space         proc
+                    mov       #%00101000,highbyte
+                    mov       #%00001000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_equal         proc
+                    mov       #%00111000,highbyte
+                    mov       #%11011000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_colon         proc
+                    mov       #%00111000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_slash         proc
+                    mov       #%00101000,highbyte
+                    mov       #%11111000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_at            proc
+                    mov       #%01001000,highbyte
+                    mov       #%00001000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_comma         proc
+                    mov       #%00101000,highbyte
+                    mov       #%11001000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_question_mark proc
+                    mov       #%00111000,highbyte
+                    mov       #%11111000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_pound         proc
+                    mov       #%00101000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_star          proc
+                    mov       #%00101000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+; Lowercase
+;*******************************************************************************
+
+write_a             proc
+                    mov       #%01101000,highbyte
+                    mov       #%00011000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_b             proc
+                    mov       #%01101000,highbyte
+                    mov       #%00101000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_c             proc
+                    mov       #%01101000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_d             proc
+                    mov       #%01101000,highbyte
+                    mov       #%01001000,lowbyte
+                    bra       ?write
+
+;*******************************************************************************
+
+write_e             proc
+                    mov       #%01101000,highbyte
+                    mov       #%01011000,lowbyte
+??write             bra       ?write
+
+;*******************************************************************************
+
+write_f             proc
+                    mov       #%01101000,highbyte
+                    mov       #%01101000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_g             proc
+                    mov       #%01101000,highbyte
+                    mov       #%01111000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_h             proc
+                    mov       #%01101000,highbyte
+                    mov       #%10001000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_i             proc
+                    mov       #%01101000,highbyte
+                    mov       #%10011000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_j             proc
+                    mov       #%01101000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_k             proc
+                    mov       #%01101000,highbyte
+                    mov       #%10111000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_l             proc
+                    mov       #%01101000,highbyte
+                    mov       #%11001000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_m             proc
+                    mov       #%01101000,highbyte
+                    mov       #%11011000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_n             proc
+                    mov       #%01101000,highbyte
+                    mov       #%11101000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_o             proc
+                    mov       #%01101000,highbyte
+                    mov       #%11111000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_p             proc
+                    mov       #%01111000,highbyte
+                    mov       #%00001000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_q             proc
+                    mov       #%01111000,highbyte
+                    mov       #%00011000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_r             proc
+                    mov       #%01111000,highbyte
+                    mov       #%00101000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_s             proc
+                    mov       #%01111000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ??write
+
+;*******************************************************************************
+
+write_t             proc
+                    mov       #%01111000,highbyte
+                    mov       #%01001000,lowbyte
+???write            bra       ??write
+
+;*******************************************************************************
+
+write_u             proc
+                    mov       #%01111000,highbyte
+                    mov       #%01011000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_v             proc
+                    mov       #%01111000,highbyte
+                    mov       #%01101000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_w             proc
+                    mov       #%01111000,highbyte
+                    mov       #%01111000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_x             proc
+                    mov       #%01111000,highbyte
+                    mov       #%10001000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_y             proc
+                    mov       #%01111000,highbyte
+                    mov       #%10011000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_z             proc
+                    mov       #%01111000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+; Uppercase
+;*******************************************************************************
+
+write_A             proc
+                    mov       #%01001000,highbyte
+                    mov       #%00011000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_B             proc
+                    mov       #%01001000,highbyte
+                    mov       #%00101000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_C             proc
+                    mov       #%01001000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_D             proc
+                    mov       #%01001000,highbyte
+                    mov       #%01001000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_E             proc
+                    mov       #%01001000,highbyte
+                    mov       #%01011000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_F             proc
+                    mov       #%01001000,highbyte
+                    mov       #%01101000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_G             proc
+                    mov       #%01001000,highbyte
+                    mov       #%01111000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_H             proc
+                    mov       #%01001000,highbyte
+                    mov       #%10001000,lowbyte
+                    bra       ???write
+
+;*******************************************************************************
+
+write_I             proc
+                    mov       #%01001000,highbyte
+                    mov       #%10011000,lowbyte
+????write           bra       ???write
+
+;*******************************************************************************
+
+write_J             proc
+                    mov       #%01001000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_K             proc
+                    mov       #%01001000,highbyte
+                    mov       #%10111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_L             proc
+                    mov       #%01001000,highbyte
+                    mov       #%11001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_M             proc
+                    mov       #%01001000,highbyte
+                    mov       #%11011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_N             proc
+                    mov       #%01001000,highbyte
+                    mov       #%11101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_O             proc
+                    mov       #%01001000,highbyte
+                    mov       #%11111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_P             proc
+                    mov       #%01011000,highbyte
+                    mov       #%00001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_Q             proc
+                    mov       #%01011000,highbyte
+                    mov       #%00011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+;*******************************************************************************
+write_R             proc
+write_Rr            proc
+                    mov       #%01011000,highbyte
+                    mov       #%00101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_S             proc
+                    mov       #%01011000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_T             proc
+                    mov       #%01011000,highbyte
+                    mov       #%01001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_U             proc
+                    mov       #%01011000,highbyte
+                    mov       #%01011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_V             proc
+                    mov       #%01011000,highbyte
+                    mov       #%01101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_W             proc
+                    mov       #%01011000,highbyte
+                    mov       #%01111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_X             proc
+                    mov       #%01011000,highbyte
+                    mov       #%10001000,lowbyte
+?????write          bra       ?????write
+
+;*******************************************************************************
+
+write_Y             proc
+                    mov       #%01011000,highbyte
+                    mov       #%10011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_Z             proc
+                    mov       #%01011000,highbyte
+                    mov       #%10101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_0             proc
+                    mov       #%00111000,highbyte
+                    mov       #%00001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_1             proc
+                    mov       #%00111000,highbyte
+                    mov       #%00011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_2             proc
+                    mov       #%00111000,highbyte
+                    mov       #%00101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_3             proc
+                    mov       #%00111000,highbyte
+                    mov       #%00111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_4             proc
+                    mov       #%00111000,highbyte
+                    mov       #%01001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_5             proc
+                    mov       #%00111000,highbyte
+                    mov       #%01011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_6             proc
+                    mov       #%00111000,highbyte
+                    mov       #%01101000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_7             proc
+                    mov       #%00111000,highbyte
+                    mov       #%01111000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_8             proc
+                    mov       #%00111000,highbyte
+                    mov       #%10001000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+
+write_9             proc
+                    mov       #%00111000,highbyte
+                    mov       #%10011000,lowbyte
+                    bra       ?????write
+
+;*******************************************************************************
+; TEC LCD Setup
+
+;*******************************************************************************
+; Date & Time
+
+lcd_date_time       proc
+                    lda       tens                ; write tens place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       tens
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+
+                    lda       ones                ; write ones place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       ones
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jmp       Delay5ms
+
+;*******************************************************************************
+
+lcd_temp_mark       proc
+                    lda       tens                ; write tens place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       tens
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+
+                    lda       ones                ; write ones place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       ones
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jmp       Delay5ms
+
+;*******************************************************************************
+
+lcd_temp            proc
+                    lda       hundreds            ; write hundreds place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       hundreds
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+
+                    lda       tens                ; write tens place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    jsr       EN_clock
+                    jsr       Delay5ms
+                    lda       tens
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    jsr       Delay5ms
+
+                    lda       ones                ; write ones place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+                    lda       ones
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bra       Delay5ms
+
+;*******************************************************************************
+
+lcd_temp_92         proc
+                    lda       tens                ; write tens place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+                    lda       tens
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+
+                    lda       ones                ; write ones place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+                    lda       ones
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+
+;*******************************************************************************
+
+                    jsr       write_period        proc
+
+                    lda       tenths              ; write tenths place
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bsr       Delay5ms
+                    lda       tenths
+                    nsa
+                    and       #%11111000
+                    ora       #%00001000
+                    sta       PTBD
+;                   jsr       temp_setup
+                    bsr       EN_clock
+                    bra       Delay5ms
+
+;*******************************************************************************
+
+temp_setup          proc
+                    bset      STROBE
+                    bclr      LCD_EN
+                    bclr      Y2
+                    bclr      Y4
+                    rts
+
+;*******************************************************************************
+
+EN_clock            proc
+                    bset      STROBE
+                    bclr      Y4                  ; set up Y4 as a low
+                    bclr      Y2
+                    bset      LCD_EN              ; EN = 1
+                    bclr      STROBE
+                    bset      STROBE
+                    bclr      LCD_EN              ; EN = 0
+                    rts
+
+;*******************************************************************************
+
+bus_input           proc
+                    mov       #$0F,PTBDD          ; set data direction for for 4-7 in port B to an input
+                    rts
+
+;*******************************************************************************
+
+bus_output          proc
+                    mov       #$ff,PTBDD          ; set data direction for for 0-7 in port B to an output
+                    rts
+
+;*******************************************************************************
+
+Delay5ms            proc
+Loop@@              dbnz      ?cntr1,_2@@
+                    mov       #13,?cntr1
+                    rts
+
+_2@@                dbnz      ?cntr2,_2@@
+                    mov       #238,?cntr2
+                    bra       Loop@@

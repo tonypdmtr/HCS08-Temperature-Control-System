@@ -1,0 +1,397 @@
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+                    #spauto
+
+StartCondition      proc
+                    bset      2,PTAD
+                    bset      3,PTAD
+                    nop
+                    bclr      2,PTAD
+                    nop:3
+                    bclr      3,PTAD
+;                   bra       RTC_init
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+Slave_address_w_RTC proc
+                    mov       #$D0,send_data      ; send the starting slave address to the slave 1101000 with 0 as R/W
+                    jsr       SendLoopInit
+                    bra       CheckAck
+
+;*******************************************************************************
+
+                    #spauto
+
+Slave_address_r_RTC proc
+                    mov       #$D1,send_data      ; send the starting slave address to the slave 1101000 with 1 as R/W
+                    jsr       SendLoopInit
+                    bra       CheckAck
+
+;*******************************************************************************
+
+                    #spauto
+
+Slave_address_w_TEC proc
+                    mov       #$90,send_data      ; send the starting slave address to the slave 1001000 with 0 as R/W
+                    jsr       SendLoopInit
+                    bra       CheckAck
+
+;*******************************************************************************
+
+                    #spauto
+
+Slave_address_r_TEC proc
+                    mov       #$91,send_data      ; send the starting slave address to the slave 1001000 with 1 as R/W
+                    jsr       SendLoopInit
+;                   bra       CheckAck
+
+;*******************************************************************************
+
+                    #spauto
+
+CheckAck            proc
+Loop@@              bclr      3,PTAD
+                    bclr      2,PTADD
+                    nop
+                    bset      3,PTAD
+;                   brset     2,PTAD,Loop@@
+                    bclr      3,PTAD
+                    bset      2,PTADD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+CheckNotAck         proc
+                    bclr      3,PTAD
+                    bset      2,PTAD
+                    bset      3,PTAD
+;                   brset     2,PTAD,CheckAck
+                    bclr      3,PTAD
+                    bclr      2,PTAD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+SendAck             proc
+                    bclr      3,PTAD
+                    bclr      2,PTAD
+                    bset      3,PTAD
+;                   brset     2,PTAD,CheckAck
+                    bclr      3,PTAD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+StopCondition       proc
+                    bset      3,PTAD
+                    nop
+                    bset      2,PTAD
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+RTC_write           proc
+                    clr       seconds
+                    clr       minutes
+                    clr       hours
+                    clr       date
+                    clr       month
+                    clr       year
+                    bsr       StartCondition      ; Start
+                    bsr       Slave_address_w_RTC
+
+                    clr       send_data           ; send seconds (0-59) to 00H
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    mov       seconds,send_data
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    bsr       StopCondition
+
+                    bsr       StartCondition      ; Start
+                    bsr       Slave_address_w_RTC
+
+                    mov       #1,send_data        ; send minutes (0-59) to 01H
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    mov       minutes,send_data
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    bsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    bsr       Slave_address_w_RTC
+
+                    mov       #2,send_data        ; send hours (0-23) to 02H
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    mov       hours,send_data
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    bsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #4,send_data        ; send date (1-31) to 04H
+                    bsr       SendLoopInit
+                    bsr       CheckAck
+                    mov       date,send_data
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    bsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #5,send_data        ; send month (1-12) to 05H
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    mov       month,send_data
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    bsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #6,send_data        ; send year (0-99) to 06H
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    mov       year,send_data
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    jmp       StopCondition
+
+;*******************************************************************************
+
+                    #spauto
+
+SendLoopInit        proc
+                    mov       #%10000000,mask
+                    mov       #8,loop_value
+
+Loop@@              lda       send_data
+                    and       mask
+                    bne       _1@@
+                    beq       _0@@
+
+MaskDec@@           lsr       mask
+                    dbnz      loop_value,Loop@@
+                    rts
+
+_1@@                bset      2,PTAD
+                    nop
+                    bset      3,PTAD
+                    nop
+                    bclr      3,PTAD
+                    bra       MaskDec@@
+
+_0@@                bclr      2,PTAD
+                    nop
+                    bset      3,PTAD
+                    nop
+                    bclr      3,PTAD
+                    bra       MaskDec@@
+
+;*******************************************************************************
+
+                    #spauto
+
+RTC_read            proc
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    clr       send_data           ; send seconds (0-59) to 00H
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    jsr       ReadDataLoopInit
+                    mov       read_data,seconds
+                    jsr       CheckNotAck
+                    jsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #1,send_data        ; send minutes (0-59) to 01H
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    jsr       ReadDataLoopInit
+                    mov       read_data,minutes
+                    jsr       CheckNotAck
+                    jsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #2,send_data        ; send hours (0-23) to 02H
+                    bsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    bsr       ReadDataLoopInit
+                    mov       read_data,hours
+                    jsr       CheckNotAck
+                    jsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #4,send_data        ; send date (1-31) to 04H
+                    jsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    bsr       ReadDataLoopInit
+                    mov       read_data,date
+                    jsr       CheckNotAck
+                    jsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #5,send_data        ; send month (1-12) to 05H
+                    jsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    bsr       ReadDataLoopInit
+                    mov       read_data,month
+                    jsr       CheckNotAck
+                    jsr       StopCondition
+
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_RTC
+
+                    mov       #6,send_data        ; send year (0-99) to 06H
+                    jsr       SendLoopInit
+                    jsr       CheckAck
+                    jsr       StartCondition
+                    jsr       Slave_address_r_RTC
+                    bsr       ReadDataLoopInit
+                    mov       read_data,year
+                    jsr       CheckNotAck
+                    jmp       StopCondition
+
+;*******************************************************************************
+
+                    #spauto
+
+ReadDataLoopInit    proc
+                    mov       #%10000000,mask_2
+                    mov       #8,loop_value_2
+                    clr       read_data
+                    bclr      2,PTADD
+
+Loop@@              bset      3,PTAD
+                    bsr       TinyDelay
+                    brset     2,PTAD,_1@@
+                    brclr     2,PTAD,_0@@
+
+_1@@                bclr      3,PTAD
+                    lda       mask_2
+                    ora       read_data
+                    sta       read_data
+                    bra       Cont@@
+
+_0@@                bclr      3,PTAD
+                    mov       read_data,read_data
+                    bne       Cont@@
+                    !...
+
+Cont@@              lsr       mask_2
+                    dbnz      loop_value_2,Loop@@
+                    bset      2,PTADD
+                    rts
+
+;*******************************************************************************
+; LM92 READ
+
+                    #spauto
+
+TEC_read            proc
+                    jsr       StartCondition      ; Start
+                    jsr       Slave_address_w_TEC
+
+                    clr       send_data           ; send pointer $00 for read only Temperature
+                    jsr       SendLoopInit
+                    jsr       CheckAck
+
+                    jsr       StartCondition      ; repeated start
+
+                    jsr       Slave_address_r_TEC
+
+                    bsr       ReadDataLoopInit
+                    mov       read_data,temp_msb
+
+                    jsr       SendAck
+
+                    bsr       ReadDataLoopInit
+                    mov       read_data,temp_lsb
+                    jsr       CheckNotAck
+                    jmp       StopCondition
+
+;*******************************************************************************
+
+                    #spauto
+
+Convert_LM92_temp   proc
+                    lda       temp_lsb            ; REWORK CONVERSIONS, LOAD 16bits into H:X and shift 3 times
+                    lsra:3                        ; convert low byte to actual temperature
+                                                  ; One LSB = 0.0625 C.....therefore Temp = LSB/16
+                                                  ; Logical Shift Right 3 times to account for status bits in LM92 temperature register
+                    sta       final_temp          ; 000XXXXX is LSB
+
+                    lda       temp_msb
+                    lsla:5                         ; XXX00000
+                    ora       final_temp
+                    sta       final_temp          ; XXXXXXXX bit 7 - bit 0
+
+                    lda       temp_msb
+                    lsra:3
+                    sta       final_temp+1
+
+                    ldhx      final_temp+1
+                    ldx       #16                 ; Load X with 16 to divide
+                    lda       final_temp
+                    div
+                    sta       final_temp
+                    clr       final_temp+1        ; Load final_temp+1 high byte with 0
+          ;--------------------------------------
+                    tha
+                    ldx       #5
+                    mul
+                    ldhx      #8
+                    div
+                    add       #'0'
+                    sta       tenths
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+TinyDelay           proc
+                    nop:10
+                    rts
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

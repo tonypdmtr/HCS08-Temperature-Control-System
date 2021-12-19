@@ -1,0 +1,93 @@
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+read_date           proc
+                    mov       #10,n
+                    jsr       clear_display
+                    jsr       write_month
+                    jsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       month_t
+                    mov       #10,n
+                    jsr       read_keypad
+                    lda       n
+                    ora       month_t
+                    sta       month
+                    mov       #10,n
+
+                    jsr       clear_display
+                    jsr       write_date
+                    jsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       date_t
+                    mov       #10,n
+                    jsr       read_keypad
+                    lda       n
+                    ora       date_t
+                    sta       date
+                    mov       #10,n
+
+                    jsr       clear_display
+                    jsr       write_year
+                    jsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       year_t
+                    mov       #10,n
+                    jsr       read_keypad
+                    lda       n
+                    ora       year_t
+                    sta       year
+                    mov       #10,n
+                    rts
+
+;*******************************************************************************
+
+read_time           proc
+                    mov       #10,n
+                    jsr       clear_display
+                    jsr       write_hour
+                    jsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       hour_t
+                    mov       #10,n
+                    jsr       read_keypad
+                    lda       n
+                    ora       hour_t
+                    sta       hours
+                    mov       #10,n
+
+                    jsr       clear_display
+                    jsr       write_min
+                    bsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       min_t
+                    mov       #10,n
+                    bsr       read_keypad
+                    lda       n
+                    ora       min_t
+                    sta       minutes
+                    mov       #10,n
+
+                    jsr       clear_display
+                    jsr       write_sec
+                    bsr       read_keypad
+                    lda       n
+                    nsa
+                    sta       sec_t
+                    mov       #10,n
+                    bsr       read_keypad
+                    lda       n
+                    ora       sec_t
+                    sta       seconds
+                    mov       #10,n
+                    rts
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

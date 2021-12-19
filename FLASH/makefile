@@ -53,7 +53,7 @@ endif
 
 -include ../makefile.defs
 
-# Add inputs and outputs from these tool invocations to the build variables 
+# Add inputs and outputs from these tool invocations to the build variables
 EXECUTABLES += \
 Lab7_3.abs \
 
@@ -112,7 +112,6 @@ clean:
 
 -include ../makefile.targets
 
-explicit-dependencies: ../Project_Settings/Linker_Files/Project.prm 
+explicit-dependencies: ../Project_Settings/Linker_Files/Project.prm
 
-warning-messages: 
-
+warning-messages:

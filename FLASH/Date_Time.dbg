@@ -17,7 +17,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1939,8 +1939,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 
@@ -1956,14 +1956,14 @@ feed_watchdog: MACRO
           ENDM
             XREF MCU_init
 
-            XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack	
+            XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack
 			XREF mainLoop, init_LCD, lcd_temp, read_keypad, second_line,write_space,pwm_read,clear_display
 			XREF write_month,write_date,write_year,write_hour,write_min,write_sec,n
 			XDEF read_date,read_time
 			XREF seconds,minutes,hours,date,month,year
-			
-			
-			
+
+
+
 MY_DATE_TIME: SECTION  SHORT         ; Insert here your data definition
 	;ORG $145
 	month_t: 		DS.B 1
@@ -1983,92 +1983,92 @@ read_date:
 	JSR clear_display
 	JSR write_month
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA month_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA month_t
 	STA month
 	LDA #10
 	STA n
-	
+
 	JSR clear_display
 	JSR write_date
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA date_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA date_t
 	STA date
 	LDA #10
 	STA n
-	
+
 	JSR clear_display
 	JSR write_year
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA year_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA year_t
 	STA year
 	LDA #10
 	STA n
 	RTS
-	
+
 read_time:
 	LDA #10
 	STA n
 	JSR clear_display
 	JSR write_hour
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA hour_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA hour_t
 	STA hours
 	LDA #10
 	STA n
-	
+
 	JSR clear_display
 	JSR write_min
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA min_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA min_t
 	STA minutes
 	LDA #10
 	STA n
-	
+
 	JSR clear_display
 	JSR write_sec
 	JSR read_keypad
-	LDA n 
+	LDA n
 	NSA
 	STA sec_t
 	LDA #10
 	STA n
 	JSR read_keypad
-	LDA n 
+	LDA n
 	ORA sec_t
 	STA seconds
 	LDA #10

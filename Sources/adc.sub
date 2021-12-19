@@ -1,0 +1,542 @@
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
+
+;*******************************************************************************
+; Initialization
+; internal sensor ADCH = 11010
+; external sensor ADCH = 00010
+
+                    #spauto
+
+ADC_init            proc
+                    mov       #%00100001,ADCSC1
+                    mov       #%00000000,ADCSC2
+                    mov       #%00000010,APCTL1
+                    clr       total_temp
+                    clr       total_temp+1
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+pwm_read            proc
+                    jsr:3     delay_loop
+                    mov       #%00100001,ADCSC1
+                    jsr       check_coco
+                    mov       ADCRL,pwm
+                    ldhx      #8
+                    div
+                    sta       pwm
+;                   bra       pwm_write
+
+;*******************************************************************************
+
+                    #spauto
+
+pwm_write           proc
+                    lda       pwm
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       ones
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       tens
+                    pula
+                    jmp       lcd_pwm
+
+;*******************************************************************************
+; Date & Time
+                    #spauto
+
+date_time_write_init proc
+                    lda       month
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       month
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jsr       lcd_date_time
+
+                    jsr       write_slash
+
+                    lda       date
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       date
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jsr       lcd_date_time
+
+                    jsr       write_slash
+
+                    lda       year
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       year
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jsr       lcd_date_time
+
+                    jsr       second_line
+
+                    lda       hours
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       hours
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jsr       lcd_date_time
+
+                    jsr       write_colon
+
+                    lda       minutes
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       minutes
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jsr       lcd_date_time
+
+                    jsr       write_colon
+
+                    lda       seconds
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       seconds
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jmp       lcd_date_time
+
+;*******************************************************************************
+
+                    #spauto
+
+date_time_write     proc
+                    ldhx      #10
+                    lda       data
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       ones
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       tens
+                    pula
+                    jmp       lcd_date_time
+
+;*******************************************************************************
+
+                    #spauto
+
+date_time_write_sec_min proc
+                    lda       data
+                    and       #%00001111
+;                   bra       time_write
+
+;*******************************************************************************
+
+                    #spauto
+
+time_write          proc
+;                   clr       total_temp
+;                   clr       ext_temp
+                    lda       final_temp
+;                   mov       #%00100010,ADCSC1
+;                   jsr       check_coco
+;                   mov       ADCRL,cur_counts
+
+                    ldhx      final_temp+1
+                    ldx       #10
+                    lda       final_temp
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       ones
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       tens
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       hundreds            ; 00110000
+                    pula
+                    jmp       lcd_temp
+
+;*******************************************************************************
+
+                    #spauto
+
+seconds_write       proc
+                    lda       seconds
+                    and       #%00001111
+                    add       #'0'
+                    sta       ones
+                    lda       seconds
+                    nsa
+                    and       #%00001111
+                    add       #'0'
+                    sta       tens
+                    jmp       lcd_date_time
+
+;*******************************************************************************
+
+                    #spauto
+
+seconds_temp_write  proc
+                    lda       seconds_temp
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       ones
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       tens
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       hundreds            ; 00110000
+                    pula
+                    jmp       lcd_temp
+
+;*******************************************************************************
+; Internal And External Temperature Readings
+
+                    #spauto
+
+temp_read           proc
+                    clr       total_temp
+                    clr       total_temp+1
+                    jsr       init_LCD
+                    bsr       ext_conv
+                    jsr       temp_write
+                    jsr       write_space
+
+                    lda       final_temp
+                    add       #17
+                    sta       final_temp
+                    mov       #1,final_temp+1
+                    jsr       temp_write
+
+                    mov       m,n
+                    clr       total_temp
+                    clr       total_temp+1
+
+                    jsr       second_line
+
+                    bsr       int_conv
+                    jsr       temp_write
+
+                    jsr       write_space
+
+                    lda       final_temp
+                    add       #17
+                    sta       final_temp
+                    mov       #1,final_temp+1
+                    bsr       temp_write
+                    jmp       read_keypad
+
+;*******************************************************************************
+
+                    #spauto
+
+ext_conv            proc
+                    mov       #%00100010,ADCSC1
+                    jsr       check_coco
+                    lda       ADCRL
+                    sta       ext_temp            ; store voltage in ext_temp once the conversion is complete
+                    add       total_temp          ; modify to do 16bit by 8 bit division!! store lower 8 in A and upper 8 in H
+                    sta       total_temp
+                    clra
+                    adc       total_temp+1
+                    sta       total_temp+1
+                    dbnz      n,ext_conv
+
+                    lda       total_temp          ; 159 - 1.1*counts
+                    ldhx      total_temp+1
+                    ldx       m                   ; divide the total of all read-in voltages by n
+                    div
+                    sta       intacc1             ; average voltage is stored in intacc1
+
+                    clr       intacc1+1
+                    clr       intacc1+2
+                    clr       intacc1+3
+                    clr       intacc2+1
+                    clr       intacc2+2
+                    clr       intacc2+3
+                    mov       #11,intacc2         ; multiply by 11
+                    jsr       UMULT16
+
+                    lda       intacc1+1
+                    ldhx      intacc1
+                    ldx       #10
+                    div
+                    sta       count_temp
+                    lda       #159
+                    sub       count_temp
+                    sta       final_temp
+                    clr       final_temp+1
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+int_conv            proc
+                    lda       #%00111010
+                    sta       ADCSC1
+                    bsr       check_coco
+                    lda       ADCRL
+                    sta       ext_temp            ; store voltage in ext_temp once the conversion is complete
+                    add       total_temp          ; modify to do 16bit by 8 bit division!! store lower 8 in A and upper 8 in H
+                    sta       total_temp
+                    clra
+                    adc       total_temp+1
+                    sta       total_temp+1
+                    dbnz      n,int_conv
+
+                    lda       total_temp
+                    ldhx      total_temp+1
+                    ldx       m                   ; divide the total of all read-in voltages by m
+                    div                           ; 10(44 - 3(counts)/4)
+                    ldx       #3
+                    mul                           ; multiply by 3
+                    ldx       #4
+                    div                           ; divide by 4
+                    sta       m
+                    lda       #43
+                    sub       m                   ; subtract from 44
+
+                    ldx       #10
+                    mul                           ; multiply by 10
+                    sta       final_temp
+                    clr       final_temp+1
+                    rts
+
+;*******************************************************************************
+
+                    #spauto
+
+temp_write          proc
+;                   clr       total_temp
+;                   clr       ext_temp
+                    lda       final_temp
+;                   lda       #%00100010
+;                   sta       ADCSC1
+;                   jsr       check_coco
+;                   mov       ADCRL,cur_counts
+
+                    ldhx      #10
+                    lda       final_temp
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       ones
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       tens
+                    pula
+
+                    ldhx      #10
+                    div
+                    psha
+                    tha
+                    add       #'0'
+                    sta       hundreds            ; 00110000
+                    pula
+                    jmp       lcd_temp_92
+
+;*******************************************************************************
+
+                    #spauto
+
+check_coco          proc
+                    brclr     7,ADCSC1,*
+                    rts
+
+;*******************************************************************************
+; Signed 16 x 16 Multiply
+
+                    #spauto
+
+SMULT16             proc
+                    push
+                    #ais
+                    clra
+                    psha      sign@@              ; clear result sign
+
+                    brclr     7,intacc1,_3@@      ; check multiplier sign bit and negate
+                                                  ; (two's complement) if set
+                    neg       intacc1+1           ; two's comp multiplier LSB
+                    bcc       _1@@                ; check for borrow from zero
+                    neg       intacc1             ; two's comp multiplier MSB
+                    dec       intacc1             ; decrement MSB for borrow
+                    bra       _2@@                ; finished
+
+_1@@                neg       intacc1             ; two's comp multiplier MSB (no borrow)
+_2@@                inc       sign@@,sp           ; set sign bit for negative number
+_3@@                brclr     7,intacc2,_6@@      ; check multiplicand sign bit and negate
+                                                  ; (two's complement) if set
+                    neg       intacc2+1           ; two's comp multiplicand LSB
+                    bcc       _4@@                ; check for borrow from zero
+                    neg       intacc2             ; two's comp multiplicand MSB
+                    dec       intacc2             ; decrement MSB for borrow
+                    bra       _5@@                ; finished
+
+_4@@                neg       intacc2             ; two's comp multiplicand MSB (no borrow)
+_5@@                inc       sign@@,sp           ; set or clear sign bit
+_6@@                bsr       UMULT16             ; multiply intacc1 by intacc2
+                    lda       sign@@,sp           ; load sign bit
+                    cmpa      #1                  ; check for negative
+                    bne       Done@@              ; exit if answer is positive,
+                                                  ; otherwise two's complement result
+                    ldx       #3
+_7@@                com       intacc1,X           ; complement a byte of the result
+                    decx                          ; point to next byte to be complemented
+                    bpl       _7@@                ; loop until all four bytes of result
+                                                  ; have been complemented
+                    lda       intacc1+3           ; get result LSB
+                    add       #1                  ; add a "1" for two's comp
+                    sta       intacc1+3           ; store new value
+                    ldx       #2
+_8@@                clra
+                    adc       intacc1,X           ; add any carry from the previous
+                    sta       intacc1,X           ; of the result and store the new
+                    decx                          ; values
+                    bpl       _8@@
+Done@@              ais       #:ais               ; deallocate temp storage on stack
+                    pull
+                    rts                           ; return
+
+;*******************************************************************************
+; Unsigned 16 x 16 Multiply
+
+                    #spauto
+
+UMULT16             proc
+                    push
+                    #ais
+                    ais       #-6                 ; reserve six bytes of temporary storage on stack
+                    #temp     ::
+ans@@               next      :temp,5
+carry@@             next      :temp
+                    #ais      :temp
+
+                    clr       carry@@,sp          ; zero storage for multiplication carry
+          ;--------------------------------------
+          ; Multiply (intacc1:intacc1+1) by intacc2+1
+          ;--------------------------------------
+                    ldx       intacc1+1           ; load x-reg w/multiplier LSB
+                    lda       intacc2+1           ; load acc w/multiplicand LSB
+                    mul                           ; multiply
+                    stx       carry@@,sp          ; save carry from multiply
+                    sta       intacc1+3           ; store LSB of final result
+                    ldx       intacc1             ; load x-reg w/multiplier MSB
+                    lda       intacc2+1           ; load acc w/multiplicand LSB
+                    mul                           ; multiply
+                    add       carry@@,sp          ; add carry from previous multiply
+                    sta       ans@@+1,sp          ; store 2nd byte of interm. result 1.
+                    bcc       _1@@                ; check for carry from addition
+                    incx                          ; increment MSB of interm. result 1.
+_1@@                stx       ans@@,sp            ; store MSB of interm. result 1.
+                    clr       carry@@,sp          ; clear storage for carry
+          ;--------------------------------------
+          ; Multiply (intacc1:intacc1+1) by intacc2
+          ;--------------------------------------
+                    ldx       intacc1+1           ; load x-reg w/multiplier LSB
+                    lda       intacc2             ; load acc w/multiplicand MSB
+                    mul                           ; multiply
+                    stx       carry@@,sp          ; save carry from multiply
+                    sta       ans@@+4,sp          ; store LSB of interm. result 2.
+                    ldx       intacc1             ; load x-reg w/multiplier MSB
+                    lda       intacc2             ; load acc w/multiplicand MSB
+                    mul                           ; multiply
+                    add       carry@@,sp          ; add carry from previous multiply
+                    sta       ans@@+3,sp          ; store 2nd byte of interm. result 2.
+                    bcc       _2@@                ; check for carry from addition
+                    incx                          ; increment MSB of interm. result 2.
+_2@@                stx       ans@@+2,sp          ; store MSB of interm. result 2.
+          ;--------------------------------------
+          ; Add the intermediate results and store the remaining three bytes of the
+          ; final value in locations intacc1:intacc1+2.
+          ;--------------------------------------
+                    tsx
+                    lda       ans@@+1,spx         ; load acc with 2nd byte of 1st result
+                    add       ans@@+4,spx         ; add acc with LSB of 2nd result
+                    sta       intacc1+2           ; store 2nd byte of final result
+                    lda       ans@@,spx           ; load acc with MSB of 1st result
+                    adc       ans@@+3,spx         ; add w/ carry 2nd byte of 2nd result
+                    sta       intacc1+1           ; store 3rd byte of final result
+                    clra
+                    adc       ans@@+2,spx         ; load acc with MSB from 2nd result
+                    sta       intacc1             ; store MSB of final result
+          ;--------------------------------------
+          ; Reset stack pointer and recover original register values
+          ;--------------------------------------
+                    ais       #:ais               ; deallocate the six bytes of local storage
+                    pull
+                    rts                           ; return
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

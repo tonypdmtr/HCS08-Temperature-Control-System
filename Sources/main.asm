@@ -1,654 +1,601 @@
-            INCLUDE 'derivative.inc'
-            XREF MCU_init
+;*******************************************************************************
+                    #Uses     qg8.inc
+;*******************************************************************************
 
-; export symbols
-            XDEF _Startup, main
-            ; we export both '_Startup' and 'main' as symbols. Either can
-            ; be referenced in the linker .prm file or from C/C++ later on
-                    
-            XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack
-			XDEF cntr1, mainLoop, onoff, debounce, PTBD_TEMP, PTBDD_TEMP,seconds_temp,C_Hold,C_temp,temp_tens,temp_ones
-			XREF read_keypad, init_LCD, ADC_init, write_entern,write_req,init_pwm,RTC_write,RTC_read,read_date,read_time, TEC_read,write_TEC_state,write_T92,write_KatT,write_space,n,press_pound,final_temp,write_Heating_to,write_Cooling_to,write_error,lcd_temp
-			XREF date_time_write_init, fivems_delay,clear_display, second_line,state,Convert_LM92_temp,seconds_write,update, reset_cursor,write_Mode_ABC,write_Enter_Tset,write_Enter_10_40C,write_TEC_function,write_1_Heat_0_Cool,write_Target_Temp
-			XREF ones, tens, lcd_temp_mark, delay_loop,seconds,minutes,seconds_temp_write
-			XREF write_Time_in_seconds,write_Enter_0_180,write_Heating_t,write_Cooling_t,write_B_TEC_off,write_A_TEC_off
-; variable/data section
-MY_ZEROPAGE: SECTION  SHORT         ; Insert here your data definition
-	;ORG $70
-	onoff:  DS.B 1
-	cntr1:	DS.B 1
-	PTBD_TEMP: DS.B 1
-	PTBDD_TEMP: DS.B 1
-	debounce: DS.B 1
-	previous_state: DS.B 1
-	press_value: DS.B 1
-	temp_ones: DS.B 1
-	temp_tens: DS.B 1
-	A_temp: DS.B 1
-	A_tens: DS.B 1
-	A_ones: DS.B 1
-	B_time_h: DS.B 1
-	B_time_t: DS.B 1
-	B_time_o: DS.B 1
-	B_time_total: DS.B 1
-	B_state: DS.B 1
-	cntr5: DS.B 1
-	cntr6: DS.B 1
-	cntr7: DS.B 1
-	seconds_temp: DS.B 1
-	C_temp: DS.B 1
-	C_Hold: DS.B 1
+LCD_EN              pin       PTBD,2
+Y4                  pin       PTBD,0
+Y2                  pin       PTBD,1
+Y3                  pin       PTBD,0
 
-; code section
-MyCode:     SECTION
-main:
-_Startup:
-            LDHX   #__SEG_END_SSTACK ; initialize the stack pointer
-            TXS	
-            CLI						; enable interrupts	
-            CLRA
-            LDA #$53 				;disable watchdog
-            STA SOPT1
-            
-            LDA #%11111111			;set data direction for for 0-7 in port A to an output
-            STA PTADD
-            MOV #0, onoff
-            JSR init_LCD
-            
-			mov #83,cntr5
-            mov #83,cntr6
-            mov #83,cntr7
-            
-            LDA #%00001000		;clear LED's
-            STA PTBD
-            BCLR 3, PTBD
-            BSET 3, PTBD
-            LDA #%00001001
-            STA PTBD
-            BCLR 3, PTBD
-            BSET 3, PTBD
-            BCLR 0, PTBD
-            ;JSR write_req
-            ;JSR ADC_init
-            LDA #0
-            STA state
-            JSR    MCU_init			; Call generated device initialization function 									
-mainLoop: 
-			LDA #0
-			STA C_Hold
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR second_line
-			JSR write_T92
-			JSR reset_cursor
-			JSR write_Mode_ABC
-Read_ABC:
-			JSR read_keypad
-			LDA n
-			STA press_value
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, mainLoop
-			LDA press_value
-			CBEQA #10, A_select
-			CBEQA #11, B_select1
-			CBEQA #12, C_select1
-			BRA mainLoop
-			
-B_select1:
-			JMP B_select
-C_select1:
-			JMP C_select
-************************************************* A **************************************************
-A_select:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Enter_Tset
-			JSR second_line
-			JSR write_Enter_10_40C
-			JSR read_keypad
-			JSR A_keypad_errorcheck
-			LDA n
-			STA temp_tens
-			JSR read_keypad
-			JSR A_keypad_errorcheck
-			LDA n 
-			STA temp_ones
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, A_error
-			BRA A_calc
-A_error:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Enter_Tset
-			JSR write_error
-			JSR second_line
-			JSR write_Enter_10_40C
-			JSR read_keypad
-			JSR A_keypad_errorcheck
-			LDA n
-			STA temp_tens
-			JSR read_keypad
-			JSR A_keypad_errorcheck
-			LDA n 
-			STA temp_ones
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, A_error
-			BRA A_calc
-			
-A_keypad_errorcheck:
-			LDA n
-			CBEQA #10, A_error
-			CBEQA #11, A_error
-			CBEQA #12, A_error
-			CBEQA #13, A_error
-			CBEQA #14, A_error
-			RTS			
-			
-A_calc:
-			LDA temp_tens
-			LDX #10
-			MUL
-			ADD temp_ones
-			STA A_temp
-			LDA A_temp
-			SUB #10
-			BMI A_error
-			LDA A_temp
-			SUB #40
-			BPL A_error
-			BRA A_heat_or_cool
-			
-A_heat_or_cool:
-			JSR clear_display
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			LDA final_temp
-			SUB A_temp
-			BMI A_heat
-			BPL A_cool
-			BRA A_error
-A_heat:			
-			LDA #1
-			STA state
-			JSR reset_cursor
-			JSR write_Heating_to
-			LDA temp_tens
-			ADD #48
-			STA tens
-			LDA temp_ones
-			ADD #48
-			STA ones
-			JSR lcd_temp_mark
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR delay_loop2
-			JSR second_line
-			JSR write_T92
-			LDA final_temp
-			CBEQ A_temp, A_off1
-			BRA A_heat
-			
-A_cool:			
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			LDA #2
-			STA state
-			JSR reset_cursor
-			JSR write_Cooling_to
-			LDA temp_tens
-			ADD #48
-			STA tens
-			LDA temp_ones
-			ADD #48
-			STA ones
-			JSR lcd_temp_mark
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR delay_loop2
-			JSR second_line
-			JSR write_T92
-			LDA final_temp
-			CBEQ A_temp, A_off1
-			BRA A_cool
-A_off1:
-			JSR clear_display
-			BRA A_off2
-A_off2:
-			LDA #0
-			STA state
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR reset_cursor
-			JSR write_A_TEC_off
-			JSR second_line
-			JSR write_T92
-			JSR read_keypad
-			BRA A_off2
-************************************************* B **************************************************
-B_select:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-		    JSR write_TEC_function
-		    JSR second_line
-		    JSR write_1_Heat_0_Cool
-		    JSR read_keypad
-		    LDA n
-		    SUB #2
-		    BPL B_error
-		    LDA n
-		    STA B_state
-		    JSR read_keypad
-		    LDA press_pound
-			CBEQA #0, B_error
-		    BRA B_time
-B_error:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-		    JSR write_TEC_function
-		    JSR write_error
-		    JSR second_line
-		    JSR write_1_Heat_0_Cool
-		    JSR read_keypad
-		    LDA n
-		    SUB #2
-		    BPL B_error
-		    LDA n
-		    STA B_state
-		    JSR read_keypad
-		    LDA press_pound
-			CBEQA #0, B_error
-		    BRA B_time			
-B_time:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Time_in_seconds
-			JSR second_line
-			JSR write_Enter_0_180
-			JSR read_keypad				;1st digit (hundreds)
-			LDA n
-			SUB #10
-			BPL B_time_error
-			LDA n 
-			STA B_time_h
-			JSR read_keypad				;2nd digit (tens)
-			LDA press_pound
-			CBEQA #1, B_time_1dig_send
-			LDA n 
-			SUB #10
-			BPL B_time_error
-			LDA n
-			STA B_time_t
-			JSR read_keypad				;3rd digit (ones)
-			LDA press_pound
-			CBEQA #1, B_time_2dig_send
-			LDA n
-			SUB #10
-			BPL B_time_error
-			LDA n 
-			STA B_time_o
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, B_time_error
-			BRA B_time_3dig_send
-				
-B_time_1dig_send:
-			JMP B_time_1dig 
-B_time_2dig_send:
-			JMP B_time_2dig
-B_time_3dig_send:			
-			JMP B_time_3dig
-B_time_error:		
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Time_in_seconds
-			JSR write_error
-			JSR second_line
-			JSR write_Enter_0_180
-			JSR read_keypad				;1st digit (hundreds)
-			LDA n
-			SUB #10
-			BPL B_time_error
-			LDA n 
-			STA B_time_h
-			JSR read_keypad				;2nd digit (tens)
-			LDA press_pound
-			CBEQA #1, B_time_1dig
-			LDA n 
-			SUB #10
-			BPL B_time_error
-			LDA n
-			STA B_time_t
-			JSR read_keypad				;3rd digit (ones)
-			LDA press_pound
-			CBEQA #1, B_time_2dig
-			LDA n
-			SUB #10
-			BPL B_time_error
-			LDA n 
-			STA B_time_o
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, B_time_error
-			BRA B_time_3dig
-B_time_error_send:
-			BRA B_time_error	
-B_time_1dig:
-			LDA B_time_h
-			STA B_time_total
-			BRA B_heat_or_cool
-B_time_2dig:
-			LDA B_time_h
-			LDX #10
-			MUL
-			ADD B_time_t
-			STA B_time_total
-			BRA B_heat_or_cool
-B_time_3dig:	
-			LDA B_time_h
-			LDX #100
-			MUL
-			ADD B_time_o
-			STA B_time_total
-			LDA B_time_t
-			LDX #10
-			MUL
-			ADD B_time_total
-			STA B_time_total
-			LDA B_time_total
-			SUB #181
-			BPL B_time_error_send
-			BRA B_heat_or_cool
-B_heat_or_cool:
-			JSR RTC_write
-			JSR RTC_read
-			JSR clear_display
-			LDA B_state
-			CBEQA #0, B_cool
-			CBEQA #1, B_heat
-			BRA B_heat_or_cool
-B_heat:
-			LDA #1
-			STA state
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR RTC_read
-			JSR B_seconds_conv
-			JSR delay_loop2
-			JSR reset_cursor
-			JSR write_Heating_t
-			JSR B_calc_seconds
-			JSR seconds_temp_write
-			JSR second_line
-			JSR write_T92
-			LDA B_time_total
-			CBEQ seconds_temp, B_off
-			BRA B_heat
-B_cool:
-			LDA #2
-			STA state
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR RTC_read
-			JSR B_seconds_conv
-			JSR delay_loop2
-			JSR reset_cursor
-			JSR write_Cooling_t
-			JSR B_calc_seconds
-			JSR seconds_temp_write
-			JSR second_line
-			JSR write_T92
-			LDA B_time_total
-			CBEQ seconds_temp, B_off
-			BRA B_cool	
-B_off:
-			LDA #0
-			STA state	
-			JSR clear_display
-			JSR write_B_TEC_off
-			JSR second_line
-			JSR write_T92
-			JSR read_keypad
-			BRA B_off
-B_calc_seconds:
-			LDA minutes
-			LDX #60
-			MUL
-			ADD seconds_temp
-			STA seconds_temp
-			RTS
-B_seconds_conv:
-			LDA #0
-			STA seconds_temp
-			LDA seconds
-			AND #%00001111
-			STA seconds_temp
-			LDA seconds
-			NSA
-			AND #%00001111
-			LDX #10
-			MUL 
-			ADD seconds_temp
-			STA seconds_temp
-			RTS
-			
-************************************************* C **************************************************		    	
-C_select:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Target_Temp
-			JSR second_line
-			JSR write_Enter_10_40C
-			JSR read_keypad
-			JSR C_keypad_errorcheck
-			LDA n
-			STA temp_tens
-			JSR read_keypad
-			JSR C_keypad_errorcheck
-			LDA n 
-			STA temp_ones
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, C_error
-			BRA C_calc
-			
-C_keypad_errorcheck:
-			LDA n
-			CBEQA #10, C_error
-			CBEQA #11, C_error
-			CBEQA #12, C_error
-			CBEQA #13, C_error
-			CBEQA #14, C_error
-			RTS			
-			
-C_calc:
-			LDA temp_tens
-			LDX #10
-			MUL
-			ADD temp_ones
-			STA C_temp
-			LDA C_temp
-			SUB #10
-			BMI C_error
-			LDA C_temp
-			SUB #40
-			BPL C_error
-			BRA C_heat_or_cool	
-C_error:
-			LDA #0
-			STA press_pound
-			JSR clear_display
-			JSR write_Enter_Tset
-			JSR write_error
-			JSR second_line
-			JSR write_Enter_10_40C
-			JSR read_keypad
-			JSR C_keypad_errorcheck
-			LDA n
-			STA temp_tens
-			JSR read_keypad
-			JSR C_keypad_errorcheck
-			LDA n 
-			STA temp_ones
-			JSR read_keypad
-			LDA press_pound
-			CBEQA #0, C_error
-			BRA C_calc		
-C_heat_or_cool:
-			JSR clear_display
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			LDA final_temp
-			SUB C_temp
-			BMI C_heat
-			BPL C_cool
-			BRA C_error
-C_heat:		
-			JSR TEC_read
-			JSR Convert_LM92_temp	
-			LDA #1
-			STA state
-			JSR reset_cursor
-			JSR write_Heating_to
-			LDA temp_tens
-			ADD #48
-			STA tens
-			LDA temp_ones
-			ADD #48
-			STA ones
-			JSR lcd_temp_mark
-			JSR delay_loop2
-			JSR second_line
-			JSR write_T92
-			LDA final_temp
-			CBEQ C_temp, C_off1
-			BRA C_heat
-			
-C_cool:			
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			LDA #2
-			STA state
-			JSR reset_cursor
-			JSR write_Cooling_to
-			LDA temp_tens
-			ADD #48
-			STA tens
-			LDA temp_ones
-			ADD #48
-			STA ones
-			JSR lcd_temp_mark
-			JSR delay_loop2
-			JSR second_line
-			JSR write_T92
-			LDA final_temp
-			CBEQ C_temp, C_off1
-			BRA C_cool		
-C_off1:
-			JSR clear_display
-			BRA C_off2
-C_off2:
-			LDA #0
-			STA state
-			LDA #1
-			STA C_Hold
-			JSR read_keypad
-			BRA C_off2
-******************************************************************************************************
-Restart:
-			LDA state
-			STA previous_state
-			LDA #0
-			STA seconds
-			JSR RTC_write
-			BRA Run_Pre
-Run_Pre:
-			JSR RTC_read
-			LDA seconds
-			AND #%00000001
-			BNE clearupdate
-			;BRSET 0, seconds, clearupdate
-			LDA update
-			CBEQA #1, update_no
-			BRA Run
-Run:					
-			JSR RTC_read
-			LDA seconds
-			AND #%00000001
-			BEQ update_yes
-clearupdate:
-			LDA #0
-			STA update
-update_no:
-			JSR RTC_read
-			JSR reset_cursor
-			JSR write_TEC_state
-			JSR second_line
-			JSR write_T92
-			JSR write_KatT
-			JSR seconds_write
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			LDA state
-			CBEQ previous_state, Run_Pre
-			BRA Restart
+STROBE              pin       PTBD,3
 
-update_yes:
-			JSR TEC_read
-			JSR Convert_LM92_temp
-			JSR RTC_read
-			JSR reset_cursor
-			JSR write_TEC_state
-			JSR second_line
-			JSR write_T92
-			JSR write_KatT
-			JSR seconds_write
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			JSR read_keypad
-			LDA #1
-			STA update
-			BRA Run_Pre	
-			
-			
-delay_loop2:
-loop2:		
-			DBNZ cntr5,loop3
-			mov #83,cntr5
-			bra	done_loop
-loop3:
-			DBNZ cntr6,loop4
-			mov #83,cntr6
-			bra	loop2
-loop4:
-			DBNZ cntr7,loop4
-			mov #20,cntr7
-			bra	loop3
-done_loop:
-			mov #83,cntr5
-            mov #83,cntr6
-            mov #83,cntr7
-			RTS
-NOP
-END
+;*******************************************************************************
 
+                    #Uses     mem.inc
+                    #Uses     rtc_tec.sub
+                    #Uses     adc.sub
+                    #Uses     date_time.sub
+                    #Uses     keypad.sub
+                    #Uses     lcd.sub
+                    #Uses     mcuinit.sub
+                    #Uses     pwm.sub
 
+;*******************************************************************************
+                    #ROM
+;*******************************************************************************
 
+_Startup            proc
+                    ldhx      #STACKTOP           ; __SEG_END_SSTACK ; initialize the stack pointer
+                    txs
+                    cli                           ; enable interrupts
+                    lda       #$53
+                    sta       SOPT1               ; disable watchdog
 
+                    mov       #%11111111,PTADD    ; set data direction for for 0-7 in port A to an output
+                    clr       onoff
+                    jsr       init_LCD
+
+                    mov       #83,cntr5
+                    mov       #83,cntr6
+                    mov       #83,cntr7
+
+                    mov       #%00001000,PTBD     ; clear LED's
+                    bclr      STROBE
+                    bset      STROBE
+                    mov       #%00001001,PTBD
+                    bclr      STROBE
+                    bset      STROBE
+                    bclr      Y3
+;                   jsr       write_req
+;                   jsr       ADC_init
+                    clr       state
+                    jsr       MCU_init            ; Call generated device initialization function
+
+MainLoop            clr       c_hold
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       second_line
+                    jsr       write_T92
+                    jsr       reset_cursor
+                    jsr       write_Mode_ABC
+Read_ABC
+                    jsr       read_keypad
+                    mov       n,press_value
+                    jsr       read_keypad
+                    tst       press_pound
+                    beq       MainLoop
+                    lda       press_value
+                    cbeqa     #10,A_select
+                    cbeqa     #11,B_select1
+                    cbeqa     #12,C_select1
+                    bra       MainLoop
+
+;*******************************************************************************
+
+B_select1           jmp       B_select
+C_select1           jmp       C_select
+
+;*******************************************************************************
+
+A_select            proc
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Enter_Tset
+                    jsr       second_line
+                    jsr       write_Enter_10_40C
+                    jsr       read_keypad
+                    bsr       A_keypad_errorcheck
+                    mov       n,temp_tens
+                    jsr       read_keypad
+                    bsr       A_keypad_errorcheck
+                    mov       n,temp_ones
+                    jsr       read_keypad
+                    lda       press_pound
+                    bne       A_calc
+
+A_error             clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Enter_Tset
+                    jsr       write_error
+                    jsr       second_line
+                    jsr       write_Enter_10_40C
+                    jsr       read_keypad
+                    bsr       A_keypad_errorcheck
+                    mov       n,temp_tens
+                    jsr       read_keypad
+                    bsr       A_keypad_errorcheck
+                    mov       n,temp_ones
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       A_error
+                    bra       A_calc
+
+;*******************************************************************************
+
+A_keypad_errorcheck proc
+                    lda       n
+                    cbeqa     #10,A_error
+                    cbeqa     #11,A_error
+                    cbeqa     #12,A_error
+                    cbeqa     #13,A_error
+                    cbeqa     #14,A_error
+                    rts
+
+;*******************************************************************************
+
+A_calc              proc
+                    lda       temp_tens
+                    ldx       #10
+                    mul
+                    add       temp_ones
+                    sta       a_temp
+                    sub       #10
+                    bmi       A_error
+                    lda       a_temp
+                    sub       #40
+                    bpl       A_error
+
+                    jsr       clear_display
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    lda       final_temp
+                    sub       a_temp
+                    bmi       A_heat
+                    bpl       A_cool
+                    bra       A_error
+
+A_heat
+                    mov       #1,state
+                    jsr       reset_cursor
+                    jsr       write_Heating_to
+                    lda       temp_tens
+                    add       #'0'
+                    sta       tens
+                    lda       temp_ones
+                    add       #'0'
+                    sta       ones
+                    jsr       lcd_temp_mark
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       DelayLoop2
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       final_temp
+                    cbeq      a_temp,A_off1
+                    bra       A_heat
+
+A_cool
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    mov       #2,state
+                    jsr       reset_cursor
+                    jsr       write_Cooling_to
+                    lda       temp_tens
+                    add       #'0'
+                    sta       tens
+                    lda       temp_ones
+                    add       #'0'
+                    sta       ones
+                    jsr       lcd_temp_mark
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       DelayLoop2
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       final_temp
+                    cbeq      a_temp,A_off1
+                    bra       A_cool
+
+A_off1              jsr       clear_display
+
+A_off2              clr       state
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       reset_cursor
+                    jsr       write_A_TEC_off
+                    jsr       second_line
+                    jsr       write_T92
+                    jsr       read_keypad
+                    bra       A_off2
+
+;*******************************************************************************
+
+B_select            proc
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_TEC_function
+                    jsr       second_line
+                    jsr       write_1_Heat_0_Cool
+                    jsr       read_keypad
+                    lda       n
+                    sub       #2
+                    bpl       B_error
+                    mov       n,b_state
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       B_error
+                    bra       B_time
+
+B_error
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_TEC_function
+                    jsr       write_error
+                    jsr       second_line
+                    jsr       write_1_Heat_0_Cool
+                    jsr       read_keypad
+                    lda       n
+                    sub       #2
+                    bpl       B_error
+                    mov       n,b_state
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       B_error
+
+B_time              clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Time_in_seconds
+                    jsr       second_line
+                    jsr       write_Enter_0_180
+                    jsr       read_keypad         ; 1st digit (hundreds)
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_h
+                    jsr       read_keypad         ; 2nd digit (tens)
+                    lda       press_pound
+                    cbeqa     #1,B_time_1dig_send
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_t
+                    jsr       read_keypad         ; 3rd digit (ones)
+                    lda       press_pound
+                    cbeqa     #1,B_time_2dig_send
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_o
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       B_time_error
+                    bra       B_time_3dig_send
+
+B_time_1dig_send
+                    bra       B_time_1dig
+
+B_time_2dig_send
+                    bra       B_time_2dig
+
+B_time_3dig_send
+                    bra       B_time_3dig
+
+B_time_error
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Time_in_seconds
+                    jsr       write_error
+                    jsr       second_line
+                    jsr       write_Enter_0_180
+                    jsr       read_keypad         ; 1st digit (hundreds)
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_h
+                    jsr       read_keypad         ; 2nd digit (tens)
+                    lda       press_pound
+                    cbeqa     #1,B_time_1dig
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_t
+                    jsr       read_keypad         ; 3rd digit (ones)
+                    lda       press_pound
+                    cbeqa     #1,B_time_2dig
+                    lda       n
+                    sub       #10
+                    bpl       B_time_error
+                    mov       n,b_time_o
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       B_time_error
+                    bra       B_time_3dig
+
+B_time_error_send
+                    bra       B_time_error
+
+B_time_1dig
+                    mov       b_time_h,b_time_total
+                    bra       B_heat_or_cool
+
+B_time_2dig
+                    lda       b_time_h
+                    ldx       #10
+                    mul
+                    add       b_time_t
+                    sta       b_time_total
+                    bra       B_heat_or_cool
+
+B_time_3dig
+                    lda       b_time_h
+                    ldx       #100
+                    mul
+                    add       b_time_o
+                    sta       b_time_total
+                    lda       b_time_t
+                    ldx       #10
+                    mul
+                    add       b_time_total
+                    sta       b_time_total
+                    lda       b_time_total
+                    sub       #181
+                    bpl       B_time_error_send
+
+B_heat_or_cool      jsr       RTC_write
+                    jsr       RTC_read
+                    jsr       clear_display
+                    lda       b_state
+                    beq       B_cool
+                    cbeqa     #1,B_heat
+                    bra       B_heat_or_cool
+
+B_heat
+                    mov       #1,state
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       RTC_read
+                    bsr       B_seconds_conv
+                    jsr       DelayLoop2
+                    jsr       reset_cursor
+                    jsr       write_Heating_t
+                    bsr       B_calc_seconds
+                    jsr       seconds_temp_write
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       b_time_total
+                    cbeq      seconds_temp,B_off
+                    bra       B_heat
+
+B_cool
+                    mov       #2,state
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       RTC_read
+                    bsr       B_seconds_conv
+                    jsr       DelayLoop2
+                    jsr       reset_cursor
+                    jsr       write_Cooling_t
+                    bsr       B_calc_seconds
+                    jsr       seconds_temp_write
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       b_time_total
+                    cbeq      seconds_temp,B_off
+                    bra       B_cool
+
+B_off
+                    clr       state
+                    jsr       clear_display
+                    jsr       write_B_TEC_off
+                    jsr       second_line
+                    jsr       write_T92
+                    jsr       read_keypad
+                    bra       B_off
+
+;*******************************************************************************
+
+B_calc_seconds      proc
+                    lda       minutes
+                    ldx       #60
+                    mul
+                    add       seconds_temp
+                    sta       seconds_temp
+                    rts
+
+;*******************************************************************************
+
+B_seconds_conv      proc
+                    clr       seconds_temp
+                    lda       seconds
+                    and       #%00001111
+                    sta       seconds_temp
+                    lda       seconds
+                    nsa
+                    and       #%00001111
+                    ldx       #10
+                    mul
+                    add       seconds_temp
+                    sta       seconds_temp
+                    rts
+
+;*******************************************************************************
+
+C_keypad_errorcheck proc
+                    lda       n
+                    cbeqa     #10,C_error
+                    cbeqa     #11,C_error
+                    cbeqa     #12,C_error
+                    cbeqa     #13,C_error
+                    cbeqa     #14,C_error
+                    rts
+
+;*******************************************************************************
+
+C_error             proc
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Enter_Tset
+                    jsr       write_error
+                    jsr       second_line
+                    jsr       write_Enter_10_40C
+                    jsr       read_keypad
+                    bsr       C_keypad_errorcheck
+                    mov       n,temp_tens
+                    jsr       read_keypad
+                    bsr       C_keypad_errorcheck
+                    mov       n,temp_ones
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       C_error
+                    bra       C_calc
+
+;*******************************************************************************
+
+C_select            proc
+                    clr       press_pound
+                    jsr       clear_display
+                    jsr       write_Target_Temp
+                    jsr       second_line
+                    jsr       write_Enter_10_40C
+                    jsr       read_keypad
+                    bsr       C_keypad_errorcheck
+                    mov       n,temp_tens
+                    jsr       read_keypad
+                    bsr       C_keypad_errorcheck
+                    mov       n,temp_ones
+                    jsr       read_keypad
+                    lda       press_pound
+                    beq       C_error
+          ;--------------------------------------
+C_calc              lda       temp_tens
+                    ldx       #10
+                    mul
+                    add       temp_ones
+                    sta       c_temp
+                    lda       c_temp
+                    sub       #10
+                    bmi       C_error
+                    lda       c_temp
+                    sub       #40
+                    bpl       C_error
+          ;-------------------------------------- ;Heat or Cool
+                    jsr       clear_display
+                    jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    lda       final_temp
+                    sub       c_temp
+                    bpl       Cool@@
+          ;--------------------------------------
+Heat@@              jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    mov       #1,state
+                    jsr       reset_cursor
+                    jsr       write_Heating_to
+                    lda       temp_tens
+                    add       #'0'
+                    sta       tens
+                    lda       temp_ones
+                    add       #'0'
+                    sta       ones
+                    jsr       lcd_temp_mark
+                    jsr       DelayLoop2
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       final_temp
+                    cbeq      c_temp,Off1@@
+                    bra       Heat@@
+
+Cool@@              jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    mov       #2,state
+                    jsr       reset_cursor
+                    jsr       write_Cooling_to
+                    lda       temp_tens
+                    add       #'0'
+                    sta       tens
+                    lda       temp_ones
+                    add       #'0'
+                    sta       ones
+                    jsr       lcd_temp_mark
+                    jsr       DelayLoop2
+                    jsr       second_line
+                    jsr       write_T92
+                    lda       final_temp
+                    cbeq      c_temp,Off1@@
+                    bra       Cool@@
+
+Off1@@              jsr       clear_display
+
+Off2@@              clr       state
+                    mov       #1,c_hold
+                    jsr       read_keypad
+                    bra       Off2@@
+
+;*******************************************************************************
+
+Restart             proc
+Loop@@              mov       state,previous_state
+                    clr       seconds
+                    jsr       RTC_write
+
+RunPre@@            jsr       RTC_read
+                    lda       seconds
+                    and       #%00000001
+                    bne       ClearUpdate@@
+;                   brset     seconds,ClearUpdate@@
+                    lda       update
+                    cbeqa     #1,UpdateNo@@
+
+                    jsr       RTC_read
+                    lda       seconds
+                    and       #%00000001
+                    beq       UpdateYes@@
+ClearUpdate@@       clr       update
+UpdateNo@@          jsr       RTC_read
+                    jsr       reset_cursor
+                    jsr       write_TEC_state
+                    jsr       second_line
+                    jsr       write_T92
+                    jsr       write_KatT
+                    jsr       seconds_write
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    lda       state
+                    cbeq      previous_state,RunPre@@
+                    bra       Loop@@
+
+UpdateYes@@         jsr       TEC_read
+                    jsr       Convert_LM92_temp
+                    jsr       RTC_read
+                    jsr       reset_cursor
+                    jsr       write_TEC_state
+                    jsr       second_line
+                    jsr       write_T92
+                    jsr       write_KatT
+                    jsr       seconds_write
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    jsr       read_keypad
+                    mov       #1,update
+                    bra       RunPre@@
+
+;*******************************************************************************
+
+DelayLoop2          proc
+_2@@                dbnz      cntr5,_3@@
+                    mov       #83,cntr5
+                    bra       Done@@
+
+_3@@                dbnz      cntr6,_4@@
+                    mov       #83,cntr6
+                    bra       _2@@
+
+_4@@                dbnz      cntr7,_4@@
+                    mov       #20,cntr7
+                    bra       _3@@
+
+Done@@              mov       #83,cntr5
+                    mov       #83,cntr6
+                    mov       #83,cntr7
+                    rts
+
+;*******************************************************************************
+                    #sp
+;*******************************************************************************

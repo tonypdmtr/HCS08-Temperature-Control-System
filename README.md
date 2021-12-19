@@ -6,3 +6,5 @@ Notice for Windows users: The line endings may need to be converted back to LF f
 Notice: Input and Output values for the temperature sensors, thermoelectric sensors, and other analog sensors will have to be adjusted accordingly, based on the specific characteristics of the sensors being used.
 
 Notice: This project will only work out of the box if the same exact devices are used. Unfortunately, this was a class project from Spring 2016 and the specifications for the devices were not kept track of. So, this project most likely will only be usefull as a comparison guide, if someone is creating a similar project with an HCS08 MCU as their computing device.
+
+Assemble with [ASM8](http://aspisys.com/asm8.htm) with the command `ASM8 .` from within the Sources subdirectory.

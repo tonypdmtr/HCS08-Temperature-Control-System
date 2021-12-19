@@ -17,7 +17,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1939,8 +1939,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 
@@ -1960,7 +1960,7 @@ feed_watchdog: MACRO
             XDEF _Startup, main
             ; we export both '_Startup' and 'main' as symbols. Either can
             ; be referenced in the linker .prm file or from C/C++ later on
-                    
+
             XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack
 			XDEF cntr1, mainLoop, onoff, debounce, PTBD_TEMP, PTBDD_TEMP,seconds_temp,C_Hold,C_temp,temp_tens,temp_ones
 			XREF read_keypad, init_LCD, ADC_init, write_entern,write_req,init_pwm,RTC_write,RTC_read,read_date,read_time, TEC_read,write_TEC_state,write_T92,write_KatT,write_space,n,press_pound,final_temp,write_Heating_to,write_Cooling_to,write_error,lcd_temp
@@ -1999,21 +1999,21 @@ MyCode:     SECTION
 main:
 _Startup:
             LDHX   #__SEG_END_SSTACK ; initialize the stack pointer
-            TXS	
-            CLI						; enable interrupts	
+            TXS
+            CLI						; enable interrupts
             CLRA
             LDA #$53 				;disable watchdog
             STA SOPT1
-            
+
             LDA #%11111111			;set data direction for for 0-7 in port A to an output
             STA PTADD
             MOV #0, onoff
             JSR init_LCD
-            
+
 			mov #83,cntr5
             mov #83,cntr6
             mov #83,cntr7
-            
+
             LDA #%00001000		;clear LED's
             STA PTBD
             BCLR 3, PTBD
@@ -2027,8 +2027,8 @@ _Startup:
             ;JSR ADC_init
             LDA #0
             STA state
-            JSR    MCU_init			; Call generated device initialization function 									
-mainLoop: 
+            JSR    MCU_init			; Call generated device initialization function
+mainLoop:
 			LDA #0
 			STA C_Hold
 			JSR TEC_read
@@ -2052,7 +2052,7 @@ Read_ABC:
 			CBEQA #11, B_select1
 			CBEQA #12, C_select1
 			BRA mainLoop
-			
+
 B_select1:
 			JMP B_select
 C_select1:
@@ -2071,7 +2071,7 @@ A_select:
 			STA temp_tens
 			JSR read_keypad
 			JSR A_keypad_errorcheck
-			LDA n 
+			LDA n
 			STA temp_ones
 			JSR read_keypad
 			LDA press_pound
@@ -2091,13 +2091,13 @@ A_error:
 			STA temp_tens
 			JSR read_keypad
 			JSR A_keypad_errorcheck
-			LDA n 
+			LDA n
 			STA temp_ones
 			JSR read_keypad
 			LDA press_pound
 			CBEQA #0, A_error
 			BRA A_calc
-			
+
 A_keypad_errorcheck:
 			LDA n
 			CBEQA #10, A_error
@@ -2105,8 +2105,8 @@ A_keypad_errorcheck:
 			CBEQA #12, A_error
 			CBEQA #13, A_error
 			CBEQA #14, A_error
-			RTS			
-			
+			RTS
+
 A_calc:
 			LDA temp_tens
 			LDX #10
@@ -2120,7 +2120,7 @@ A_calc:
 			SUB #40
 			BPL A_error
 			BRA A_heat_or_cool
-			
+
 A_heat_or_cool:
 			JSR clear_display
 			JSR TEC_read
@@ -2130,7 +2130,7 @@ A_heat_or_cool:
 			BMI A_heat
 			BPL A_cool
 			BRA A_error
-A_heat:			
+A_heat:
 			LDA #1
 			STA state
 			JSR reset_cursor
@@ -2150,8 +2150,8 @@ A_heat:
 			LDA final_temp
 			CBEQ A_temp, A_off1
 			BRA A_heat
-			
-A_cool:			
+
+A_cool:
 			JSR TEC_read
 			JSR Convert_LM92_temp
 			LDA #2
@@ -2222,7 +2222,7 @@ B_error:
 		    JSR read_keypad
 		    LDA press_pound
 			CBEQA #0, B_error
-		    BRA B_time			
+		    BRA B_time
 B_time:
 			LDA #0
 			STA press_pound
@@ -2234,12 +2234,12 @@ B_time:
 			LDA n
 			SUB #10
 			BPL B_time_error
-			LDA n 
+			LDA n
 			STA B_time_h
 			JSR read_keypad				;2nd digit (tens)
 			LDA press_pound
 			CBEQA #1, B_time_1dig_send
-			LDA n 
+			LDA n
 			SUB #10
 			BPL B_time_error
 			LDA n
@@ -2250,20 +2250,20 @@ B_time:
 			LDA n
 			SUB #10
 			BPL B_time_error
-			LDA n 
+			LDA n
 			STA B_time_o
 			JSR read_keypad
 			LDA press_pound
 			CBEQA #0, B_time_error
 			BRA B_time_3dig_send
-				
+
 B_time_1dig_send:
-			JMP B_time_1dig 
+			JMP B_time_1dig
 B_time_2dig_send:
 			JMP B_time_2dig
-B_time_3dig_send:			
+B_time_3dig_send:
 			JMP B_time_3dig
-B_time_error:		
+B_time_error:
 			LDA #0
 			STA press_pound
 			JSR clear_display
@@ -2275,12 +2275,12 @@ B_time_error:
 			LDA n
 			SUB #10
 			BPL B_time_error
-			LDA n 
+			LDA n
 			STA B_time_h
 			JSR read_keypad				;2nd digit (tens)
 			LDA press_pound
 			CBEQA #1, B_time_1dig
-			LDA n 
+			LDA n
 			SUB #10
 			BPL B_time_error
 			LDA n
@@ -2291,14 +2291,14 @@ B_time_error:
 			LDA n
 			SUB #10
 			BPL B_time_error
-			LDA n 
+			LDA n
 			STA B_time_o
 			JSR read_keypad
 			LDA press_pound
 			CBEQA #0, B_time_error
 			BRA B_time_3dig
 B_time_error_send:
-			BRA B_time_error	
+			BRA B_time_error
 B_time_1dig:
 			LDA B_time_h
 			STA B_time_total
@@ -2310,7 +2310,7 @@ B_time_2dig:
 			ADD B_time_t
 			STA B_time_total
 			BRA B_heat_or_cool
-B_time_3dig:	
+B_time_3dig:
 			LDA B_time_h
 			LDX #100
 			MUL
@@ -2366,10 +2366,10 @@ B_cool:
 			JSR write_T92
 			LDA B_time_total
 			CBEQ seconds_temp, B_off
-			BRA B_cool	
+			BRA B_cool
 B_off:
 			LDA #0
-			STA state	
+			STA state
 			JSR clear_display
 			JSR write_B_TEC_off
 			JSR second_line
@@ -2393,12 +2393,12 @@ B_seconds_conv:
 			NSA
 			AND #%00001111
 			LDX #10
-			MUL 
+			MUL
 			ADD seconds_temp
 			STA seconds_temp
 			RTS
-			
-************************************************* C **************************************************		    	
+
+************************************************* C **************************************************
 C_select:
 			LDA #0
 			STA press_pound
@@ -2412,13 +2412,13 @@ C_select:
 			STA temp_tens
 			JSR read_keypad
 			JSR C_keypad_errorcheck
-			LDA n 
+			LDA n
 			STA temp_ones
 			JSR read_keypad
 			LDA press_pound
 			CBEQA #0, C_error
 			BRA C_calc
-			
+
 C_keypad_errorcheck:
 			LDA n
 			CBEQA #10, C_error
@@ -2426,8 +2426,8 @@ C_keypad_errorcheck:
 			CBEQA #12, C_error
 			CBEQA #13, C_error
 			CBEQA #14, C_error
-			RTS			
-			
+			RTS
+
 C_calc:
 			LDA temp_tens
 			LDX #10
@@ -2440,7 +2440,7 @@ C_calc:
 			LDA C_temp
 			SUB #40
 			BPL C_error
-			BRA C_heat_or_cool	
+			BRA C_heat_or_cool
 C_error:
 			LDA #0
 			STA press_pound
@@ -2455,12 +2455,12 @@ C_error:
 			STA temp_tens
 			JSR read_keypad
 			JSR C_keypad_errorcheck
-			LDA n 
+			LDA n
 			STA temp_ones
 			JSR read_keypad
 			LDA press_pound
 			CBEQA #0, C_error
-			BRA C_calc		
+			BRA C_calc
 C_heat_or_cool:
 			JSR clear_display
 			JSR TEC_read
@@ -2470,9 +2470,9 @@ C_heat_or_cool:
 			BMI C_heat
 			BPL C_cool
 			BRA C_error
-C_heat:		
+C_heat:
 			JSR TEC_read
-			JSR Convert_LM92_temp	
+			JSR Convert_LM92_temp
 			LDA #1
 			STA state
 			JSR reset_cursor
@@ -2490,8 +2490,8 @@ C_heat:
 			LDA final_temp
 			CBEQ C_temp, C_off1
 			BRA C_heat
-			
-C_cool:			
+
+C_cool:
 			JSR TEC_read
 			JSR Convert_LM92_temp
 			LDA #2
@@ -2510,7 +2510,7 @@ C_cool:
 			JSR write_T92
 			LDA final_temp
 			CBEQ C_temp, C_off1
-			BRA C_cool		
+			BRA C_cool
 C_off1:
 			JSR clear_display
 			BRA C_off2
@@ -2538,7 +2538,7 @@ Run_Pre:
 			LDA update
 			CBEQA #1, update_no
 			BRA Run
-Run:					
+Run:
 			JSR RTC_read
 			LDA seconds
 			AND #%00000001
@@ -2580,11 +2580,11 @@ update_yes:
 			JSR read_keypad
 			LDA #1
 			STA update
-			BRA Run_Pre	
-			
-			
+			BRA Run_Pre
+
+
 delay_loop2:
-loop2:		
+loop2:
 			DBNZ cntr5,loop3
 			mov #83,cntr5
 			bra	done_loop
@@ -2603,7 +2603,3 @@ done_loop:
 			RTS
 NOP
 END
-
-
-
-

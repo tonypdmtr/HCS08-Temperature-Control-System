@@ -17,7 +17,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1939,8 +1939,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 
@@ -1956,13 +1956,13 @@ feed_watchdog: MACRO
           ENDM
             XREF MCU_init
 
-            XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack	
+            XREF __SEG_END_SSTACK   ; symbol defined by the linker for the end of the stack
 			XREF mainLoop, init_LCD, lcd_temp, read_keypad, second_line, write_space, pwm_read, final_temp, tenths
 			XDEF RTC_write, RTC_read, TEC_read, Convert_LM92_temp
 			XDEF seconds,minutes,hours,date,month,year,Convert_LM92_temp
-			
-			
-			
+
+
+
 temp_data_2: SECTION  SHORT         ; Insert here your data definition
 	ORG $110
 	mask: 		DS.B 1
@@ -1988,7 +1988,7 @@ main:
 *********************************************** Initialization **************************************************
 
 start_condition:
-	BSET 2, PTAD	
+	BSET 2, PTAD
 	BSET 3, PTAD
 	NOP
 	BCLR 2, PTAD
@@ -1998,35 +1998,35 @@ start_condition:
 	BCLR 3, PTAD
 	;BRA RTC_init
 	RTS
-	
+
 Slave_address_w_RTC:
 	LDA #$D0					;send the starting slave address to the slave 1101000 with 0 as R/W
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
 	RTS
-	
+
 Slave_address_r_RTC:
 	LDA #$D1					;send the starting slave address to the slave 1101000 with 1 as R/W
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
 	RTS
-	
+
 Slave_address_w_TEC:
 	LDA #$90					;send the starting slave address to the slave 1001000 with 0 as R/W
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
 	RTS
-	
+
 Slave_address_r_TEC:
 	LDA #$91					;send the starting slave address to the slave 1001000 with 1 as R/W
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
 	RTS
-	
+
 check_acknowledge:
 	BCLR 3, PTAD
 	BCLR 2, PTADD
@@ -2036,7 +2036,7 @@ check_acknowledge:
 	BCLR 3, PTAD
 	BSET 2, PTADD
 	RTS
-	
+
 check_not_acknowledge:
 	BCLR 3, PTAD
 	BSET 2, PTAD
@@ -2045,22 +2045,22 @@ check_not_acknowledge:
 	BCLR 3, PTAD
 	BCLR 2, PTAD
 	RTS
-	
+
 send_acknowledge:
 	BCLR 3,  PTAD
 	BCLR 2, PTAD
 	BSET 3, PTAD
 	;BRSET 2, PTAD, check_acknowledge
 	BCLR 3, PTAD
-	RTS 
-	
+	RTS
+
 stop_condition:
 	BSET 3, PTAD
 	NOP
 	BSET 2, PTAD
 	RTS
-	
-*********************************************** Write RTC ***************************************************************	
+
+*********************************************** Write RTC ***************************************************************
 RTC_write:
 	LDA #0
 	STA seconds
@@ -2070,7 +2070,7 @@ RTC_write:
 	STA month
 	STA year
 	JSR start_condition			;Start
-	JSR Slave_address_w_RTC	
+	JSR Slave_address_w_RTC
 
 	LDA #$00					;send seconds (0-59) to 00H
 	STA send_data
@@ -2081,10 +2081,10 @@ RTC_write:
 	JSR send_loop_init
 	JSR check_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$01					;send minutes (0-59) to 01H
 	STA send_data
 	JSR send_loop_init
@@ -2094,10 +2094,10 @@ RTC_write:
 	JSR send_loop_init
 	JSR check_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$02					;send hours   (0-23) to 02H
 	STA send_data
 	JSR send_loop_init
@@ -2107,10 +2107,10 @@ RTC_write:
 	JSR send_loop_init
 	JSR check_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$04					;send date    (1-31) to 04H
 	STA send_data
 	JSR send_loop_init
@@ -2120,10 +2120,10 @@ RTC_write:
 	JSR send_loop_init
 	JSR check_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$05					;send month   (1-12) to 05H
 	STA send_data
 	JSR send_loop_init
@@ -2133,10 +2133,10 @@ RTC_write:
 	JSR send_loop_init
 	JSR check_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$06					;send year    (0-99) to 06H
 	STA send_data
 	JSR send_loop_init
@@ -2145,18 +2145,18 @@ RTC_write:
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
-	
+
 	JSR stop_condition
-	
+
 	RTS
-	
+
 send_loop_init:
 	LDA #%10000000
 	STA mask
 	LDA #8
 	STA loop_value
 	BRA send_loop
-	
+
 send_loop:
 	LDA send_data
 	AND mask
@@ -2172,7 +2172,7 @@ mask_decr:
 	STA loop_value
 	BNE send_loop
 	RTS
-	
+
 send_one:
 	BSET 2, PTAD
 	NOP
@@ -2187,12 +2187,12 @@ send_zero:
 	BSET 3, PTAD
 	NOP
 	BCLR 3, PTAD
-	BRA mask_decr	
-	
+	BRA mask_decr
+
 ****************************************************** Read RTC ******************************************************************
 RTC_read:
 	JSR start_condition			;Start
-	JSR Slave_address_w_RTC	
+	JSR Slave_address_w_RTC
 
 	LDA #$00					;send seconds (0-59) to 00H
 	STA send_data
@@ -2205,10 +2205,10 @@ RTC_read:
 	STA seconds
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$01					;send minutes (0-59) to 01H
 	STA send_data
 	JSR send_loop_init
@@ -2220,10 +2220,10 @@ RTC_read:
 	STA minutes
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$02					;send hours   (0-23) to 02H
 	STA send_data
 	JSR send_loop_init
@@ -2235,10 +2235,10 @@ RTC_read:
 	STA hours
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$04					;send date    (1-31) to 04H
 	STA send_data
 	JSR send_loop_init
@@ -2250,10 +2250,10 @@ RTC_read:
 	STA date
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$05					;send month   (1-12) to 05H
 	STA send_data
 	JSR send_loop_init
@@ -2265,10 +2265,10 @@ RTC_read:
 	STA month
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	JSR start_condition			;Start
 	JSR Slave_address_w_RTC
-	
+
 	LDA #$06					;send year    (0-99) to 06H
 	STA send_data
 	JSR send_loop_init
@@ -2280,9 +2280,9 @@ RTC_read:
 	STA year
 	JSR check_not_acknowledge
 	JSR stop_condition
-	
+
 	RTS
-	
+
 read_data_loop_init:
 	LDA #%10000000
 	STA mask_2
@@ -2292,13 +2292,13 @@ read_data_loop_init:
 	STA read_data
 	BCLR 2, PTADD
 	BRA read_data_loop
-	
+
 read_data_loop:
 	BSET 3, PTAD
 	JSR TEN_NOP_DELAY
 	BRSET 2, PTAD, read_one
-	BRCLR 2, PTAD, read_zero 
-	
+	BRCLR 2, PTAD, read_zero
+
 read_one:
 	BCLR 3, PTAD
 	LDA #$FF
@@ -2306,7 +2306,7 @@ read_one:
 	ORA read_data
 	STA read_data
 	BRA mask_2_decr
-	
+
 read_zero:
 	BCLR 3, PTAD
 	LDA #$00
@@ -2314,8 +2314,8 @@ read_zero:
 	ORA read_data
 	STA read_data
 	BNE mask_2_decr
-	
-mask_2_decr:	
+
+mask_2_decr:
 	LDA mask_2
 	LSRA
 	STA mask_2
@@ -2326,35 +2326,35 @@ mask_2_decr:
 	BSET 2, PTADD
 	RTS
 
-		
+
 **************************************************** LM92 READ ********************************************************************
 
 TEC_read:
 	JSR start_condition			;Start
-	JSR Slave_address_w_TEC	
+	JSR Slave_address_w_TEC
 
 	LDA #$00					;send pointer $00 for read only Temperature
 	STA send_data
 	JSR send_loop_init
 	JSR check_acknowledge
-	
+
 	JSR start_condition			;repeated start
-	
+
 	JSR Slave_address_r_TEC
-	
+
 	JSR read_data_loop_init
 	LDA read_data
 	STA TEMP_MSB
-	
+
 	JSR send_acknowledge
-	
+
 	JSR read_data_loop_init
 	LDA read_data
 	STA TEMP_LSB
 	JSR check_not_acknowledge
-	
+
 	JSR stop_condition
-	
+
 	RTS
 
 Convert_LM92_temp:
@@ -2363,7 +2363,7 @@ Convert_LM92_temp:
 	LSRA					;One LSB = 0.0625 C.....therefore Temp = LSB/16
 	LSRA					;Logical Shift Right 3 times to account for status bits in LM92 temperature register
 	STA final_temp			;000XXXXX is LSB
-	
+
 	LDA TEMP_MSB
 	LSLA
 	LSLA
@@ -2372,20 +2372,20 @@ Convert_LM92_temp:
 	LSLA					;XXX00000
 	ORA final_temp
 	STA final_temp			;XXXXXXXX bit 7 - bit 0
-	
+
 	LDA TEMP_MSB
 	LSRA
 	LSRA
 	LSRA
 	STA final_temp+1
-	
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
+
 	LDHX final_temp+1
 	LDX #16				;Load X with 16 to divide
 	LDA final_temp
@@ -2393,7 +2393,7 @@ Convert_LM92_temp:
 	STA final_temp
 	LDA #0				;Load final_temp+1 high byte with 0
 	STA final_temp+1
-	
+
 	PSHH				;
 	PULA
 	LDX #5
@@ -2402,9 +2402,9 @@ Convert_LM92_temp:
 	DIV
 	ADD #48
 	STA tenths
-	
+
 	RTS
-	
+
 TEN_NOP_DELAY:
 	NOP
 	NOP

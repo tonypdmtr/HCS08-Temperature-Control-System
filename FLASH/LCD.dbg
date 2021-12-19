@@ -17,7 +17,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1939,8 +1939,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 
@@ -1963,7 +1963,7 @@ feed_watchdog: MACRO
 			XDEF write_Time_in_seconds,write_Enter_0_180,write_Heating_t,write_Cooling_t,write_B_TEC_off,write_A_TEC_off,write_overtemp
 			XREF mainLoop, hundreds, tens, ones, tenths, state,seconds_write,
 			XREF seconds,minutes,hours,date,month,year,temp_write
-			
+
 ; variable/data section
 MY_ZEROPAGE: SECTION  SHORT         ; Insert here your data definition
 	;ORG $150
@@ -1982,37 +1982,37 @@ init_LCD:
 			JSR fivems_delay		;15ms delay
 			JSR fivems_delay
 			JSR fivems_delay
-			   
-			LDA #%11111111			
+
+			LDA #%11111111
             STA PTADD				;set data direction for for 0-7 in port A to an output
             LDA #%11110000			;set RS and R/W to 0
-            STA PTAD 
-            JSR fivems_delay		
+            STA PTAD
+            JSR fivems_delay
 			JSR bus_output
 			LDA #%00111000			;Function Set Command (8-bit Interface)
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay		;wait at least 4.1 ms
-			
+
 			LDA #%00111000			;Funtion Set Command (8-Bit Interface)
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay		;wait more than 100 us
-			
+
 			LDA #%00111000			;Funtion Set Command (8-Bit Interface)
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00101000			;Function Set: Sets interface to 4-bit
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00101000			;Step 1: Function Set
 			STA PTBD
 			JSR EN_clock
@@ -2020,29 +2020,29 @@ init_LCD:
 			LDA #%10001000			;N = 1 (2 lines) F = 0 (font set)
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00001000			;Step 2: Display Off
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-			LDA #%10001000		
+			LDA #%10001000
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00001000			;Step 3: Clear Display
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-			LDA #%00011000		
+			LDA #%00011000
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00001000			;Step 4: Entry Mode Set
 			STA PTBD
 			JSR EN_clock
@@ -2050,9 +2050,9 @@ init_LCD:
 			LDA #%01101000			;I/D = 1 (Cursor/Blink moves to the right)  S = 0 (Shifting of entire display is not performed)
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
-			
+
 			LDA #%00001000			;Step 5: Display On
 			STA PTBD
 			JSR EN_clock
@@ -2061,34 +2061,34 @@ init_LCD:
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-				
+
 			LDA #%11110010			;set RS to 1 (to start writing characters)
             STA PTAD
-            RTS 
-            
+            RTS
+
 clear_display:
 			BCLR 1, PTAD
 			LDA #%00001000			;Step 3: Clear Display
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-			LDA #%00011000		
+			LDA #%00011000
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
 			BSET 1, PTAD
 			RTS
 reset_cursor:
 			BCLR 1, PTAD
-			LDA #%10001000			
+			LDA #%10001000
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-			LDA #%00001000		
+			LDA #%00001000
 			STA PTBD
 			JSR EN_clock
-			
+
 			JSR fivems_delay
 			BSET 1, PTAD
 			RTS
@@ -2098,16 +2098,16 @@ second_line:
 			STA PTBD
 			JSR EN_clock
 			JSR fivems_delay
-			LDA #%00001000		
+			LDA #%00001000
 			STA PTBD
 			JSR EN_clock
 			BSET 1, PTAD
-			
-			
-			JSR fivems_delay	
+
+
+			JSR fivems_delay
 			RTS
-			
-lcd_pwm:		
+
+lcd_pwm:
 			LDA tens				;write tens place
 			STA PTBD
 			;JSR temp_setup
@@ -2119,9 +2119,9 @@ lcd_pwm:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			JSR write_period
-			
+
 			LDA ones				;write ones place
 			STA PTBD
 			;JSR temp_setup
@@ -2133,7 +2133,7 @@ lcd_pwm:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			RTS
  ****************************************************** Write Subroutines ****************************************************************************
 write:
@@ -2161,7 +2161,7 @@ write_Enter_Tset:
 			JSR write_t
 			JSR write_question_mark
 			RTS
-			
+
 write_Enter_10_40C:
 			JSR write_E
 			JSR write_n
@@ -2177,7 +2177,7 @@ write_Enter_10_40C:
 			JSR write_space
 			JSR write_C
 			RTS
-			
+
 write_Heating_to:
 			JSR write_H
 			JSR write_e
@@ -2191,7 +2191,7 @@ write_Heating_to:
 			JSR write_o
 			JSR write_space
 			RTS
-			
+
 write_Cooling_to:
 			JSR write_C
 			JSR write_o
@@ -2204,8 +2204,8 @@ write_Cooling_to:
 			JSR write_t
 			JSR write_o
 			JSR write_space
-			RTS 
-			
+			RTS
+
 write_A_TEC_off:
 			JSR write_A
 			JSR write_colon
@@ -2215,7 +2215,7 @@ write_A_TEC_off:
 			JSR write_space
 			JSR write_off
 			RTS
-			
+
 ***************************** Menu B ************************************
 write_TEC_function:
 			JSR write_T
@@ -2312,7 +2312,7 @@ write_B_TEC_off:
 			JSR write_C
 			JSR write_space
 			JSR write_off
-			RTS						
+			RTS
 
 ***************************** Menu C ************************************
 write_Target_Temp:
@@ -2358,7 +2358,7 @@ write_overtemp:
 			JSR write_O
 			JSR write_F
 			JSR write_F
-			RTS						
+			RTS
 
 ************************** Other Phrases ************************************
 write_error:
@@ -2428,7 +2428,7 @@ write_T92:
 			JSR write_space
 			JSR temp_write
 			JSR write_space
-			RTS	
+			RTS
 write_KatT:
 			JSR write_K
 			JSR write_at
@@ -2437,7 +2437,7 @@ write_KatT:
 			;JSR write_space
 			;JSR write_space
 			;JSR write_space
-			RTS	
+			RTS
 write_month:
 			JSR write_M
 			JSR write_o
@@ -2510,7 +2510,7 @@ write_actual:
 			JSR write_t
 			JSR write_equal
 			RTS
-write_entern:          
+write_entern:
             JSR write_E
             JSR write_n
             JSR write_t
@@ -2541,7 +2541,7 @@ write_equal:
 			MOV #%00111000, highbyte
 			MOV #%11011000, lowbyte
 			JSR write
-			RTS				
+			RTS
 write_colon:
 			MOV #%00111000, highbyte
 			MOV #%10101000, lowbyte
@@ -2592,12 +2592,12 @@ write_c:
 			MOV #%01101000, highbyte
 			MOV #%00111000, lowbyte
 			JSR write
-			RTS		
+			RTS
 write_d:
 			MOV #%01101000, highbyte
 			MOV #%01001000, lowbyte
 			JSR write
-			RTS					
+			RTS
 write_e:
 			MOV #%01101000, highbyte
 			MOV #%01011000, lowbyte
@@ -2622,17 +2622,17 @@ write_i:
 			MOV #%01101000, highbyte
 			MOV #%10011000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_j:
 			MOV #%01101000, highbyte
 			MOV #%10101000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_k:
 			MOV #%01101000, highbyte
 			MOV #%10111000, lowbyte
 			JSR write
-			RTS			
+			RTS
 write_l:
 			MOV #%01101000, highbyte
 			MOV #%11001000, lowbyte
@@ -2652,17 +2652,17 @@ write_o:
 			MOV #%01101000, highbyte
 			MOV #%11111000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_p:
 			MOV #%01111000, highbyte
 			MOV #%00001000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_q:
 			MOV #%01111000, highbyte
 			MOV #%00011000, lowbyte
 			JSR write
-			RTS			
+			RTS
 write_r:
 			MOV #%01111000, highbyte
 			MOV #%00101000, lowbyte
@@ -2672,7 +2672,7 @@ write_s:
 			MOV #%01111000, highbyte
 			MOV #%00111000, lowbyte
 			JSR write
-			RTS			
+			RTS
 write_t:
 			MOV #%01111000, highbyte
 			MOV #%01001000, lowbyte
@@ -2682,32 +2682,32 @@ write_u:
 			MOV #%01111000, highbyte
 			MOV #%01011000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_v:
 			MOV #%01111000, highbyte
 			MOV #%01101000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_w:
 			MOV #%01111000, highbyte
 			MOV #%01111000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_x:
 			MOV #%01111000, highbyte
 			MOV #%10001000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_y:
 			MOV #%01111000, highbyte
 			MOV #%10011000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_z:
 			MOV #%01111000, highbyte
 			MOV #%10101000, lowbyte
 			JSR write
-			RTS	
+			RTS
 
 ************************************************** Uppercase ******************************************************
 
@@ -2786,7 +2786,7 @@ write_O:
 			MOV #%01001000, highbyte
 			MOV #%11111000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_P:
 			MOV #%01011000, highbyte
 			MOV #%00001000, lowbyte
@@ -2807,32 +2807,32 @@ write_S:
 			MOV #%01011000, highbyte
 			MOV #%00111000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_T:
 			MOV #%01011000, highbyte
 			MOV #%01001000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_U:
 			MOV #%01011000, highbyte
 			MOV #%01011000, lowbyte
 			JSR write
-			RTS			
+			RTS
 write_V:
 			MOV #%01011000, highbyte
 			MOV #%01101000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_W:
 			MOV #%01011000, highbyte
 			MOV #%01111000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_X:
 			MOV #%01011000, highbyte
 			MOV #%10001000, lowbyte
 			JSR write
-			RTS										
+			RTS
 write_Y:
 			MOV #%01011000, highbyte
 			MOV #%10011000, lowbyte
@@ -2842,7 +2842,7 @@ write_Z:
 			MOV #%01011000, highbyte
 			MOV #%10101000, lowbyte
 			JSR write
-			RTS	
+			RTS
 write_0:
 			MOV #%00111000, highbyte
 			MOV #%00001000, lowbyte
@@ -2914,7 +2914,7 @@ lcd_date_time:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			LDA ones				;write ones place
 			AND #%11111000
 			ORA #%00001000
@@ -2930,7 +2930,7 @@ lcd_date_time:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			RTS
 
 ***************************************************************************************************************************
@@ -2950,7 +2950,7 @@ lcd_temp_mark:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			LDA ones				;write ones place
 			AND #%11111000
 			ORA #%00001000
@@ -2966,7 +2966,7 @@ lcd_temp_mark:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			RTS
 lcd_temp:
 			LDA hundreds			;write hundreds place
@@ -2984,7 +2984,7 @@ lcd_temp:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			LDA tens				;write tens place
 			AND #%11111000
 			ORA #%00001000
@@ -3000,7 +3000,7 @@ lcd_temp:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			LDA ones				;write ones place
 			AND #%11111000
 			ORA #%00001000
@@ -3016,7 +3016,7 @@ lcd_temp:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			RTS
 lcd_temp_92:
 			LDA tens				;write tens place
@@ -3034,7 +3034,7 @@ lcd_temp_92:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			LDA ones				;write ones place
 			AND #%11111000
 			ORA #%00001000
@@ -3050,9 +3050,9 @@ lcd_temp_92:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			JSR write_period
-			
+
 			LDA tenths				;write tenths place
 			AND #%11111000
 			ORA #%00001000
@@ -3068,7 +3068,7 @@ lcd_temp_92:
 			;JSR temp_setup
 			JSR EN_clock
 			JSR fivems_delay
-			
+
 			RTS
 temp_setup:
 			BSET 3, PTBD
@@ -3080,22 +3080,22 @@ temp_setup:
 EN_clock:
 			BSET 3,PTBD
 			BCLR 0,PTBD			;set up Y4 as a low
-			BCLR 1,PTBD	
+			BCLR 1,PTBD
 			BSET 2,PTBD			;EN = 1
 			BCLR 3,PTBD
-			BSET 3,PTBD		   
-			BCLR 2,PTBD         ;EN = 0	   
-			RTS			
+			BSET 3,PTBD
+			BCLR 2,PTBD         ;EN = 0
+			RTS
 bus_input:
 			LDA #$0F			;set data direction for for 4-7 in port B to an input
-            STA PTBDD          
+            STA PTBDD
 			RTS
 bus_output:
             LDA #$ff			;set data direction for for 0-7 in port B to an output
             STA PTBDD
-            RTS			
+            RTS
 fivems_delay:
-loop1:		
+loop1:
 			LDA cntr1
 			DECA
 			STA cntr1
@@ -3103,7 +3103,7 @@ loop1:
 			mov #13,cntr1
 			bra	done_loop
 loop2:
-			LDA cntr2 
+			LDA cntr2
 			DECA
 			STA cntr2
 			BNE loop2
@@ -3114,7 +3114,3 @@ done_loop:
 
 NOP
 END
-
-
-
-

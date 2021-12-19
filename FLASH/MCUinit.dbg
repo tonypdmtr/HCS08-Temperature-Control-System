@@ -10,13 +10,13 @@
 ;**     Datasheet   : MC9S08QG8 Rev. 4 2/2008
 ;**     Date/Time   : 2016-01-26, 17:43, # CodeGen: 1
 ;**     Abstract    :
-;**         This module contains device initialization code 
+;**         This module contains device initialization code
 ;**         for selected on-chip peripherals.
 ;**     Contents    :
 ;**         Function "MCU_init" initializes selected peripherals
 ;**
 ;**     Copyright : 1997 - 2011 Freescale Semiconductor, Inc. All Rights Reserved.
-;**     
+;**
 ;**     http      : www.freescale.com
 ;**     mail      : support@freescale.com
 ;** ###################################################################
@@ -37,7 +37,7 @@
 ;         This header implements the mapping of I/O devices.
 ;
 ;     Copyright : 1997 - 2010 Freescale Semiconductor, Inc. All Rights Reserved.
-;     
+;
 ;     http      : www.freescale.com
 ;     mail      : support@freescale.com
 ;
@@ -1959,8 +1959,8 @@ mNV_ICSTRM_TRIM7:                        equ        mNVICSTRM_TRIM7
 Reserved2                                equ        VReserved22
 Reserved3                                equ        VReserved21
 Reserved13                               equ        VReserved11
-Reserved14                               equ        VReserved10 
-Reserved15                               equ        VReserved9 
+Reserved14                               equ        VReserved10
+Reserved15                               equ        VReserved9
 Reserved16                               equ        VReserved8
 Reserved20                               equ        VReserved4
 
@@ -1981,61 +1981,61 @@ CODE_SECT:      SECTION
 ;**         Device initialization code for selected peripherals.
 ;** ===================================================================
 MCU_init:
-  ; ### MC9S08QG8_16 "Cpu" init code ... 
-  ; Common initialization of the write once registers 
-        ; SOPT1: COPE=0,COPT=1,STOPE=0,BKGDPE=1,RSTPE=0 
+  ; ### MC9S08QG8_16 "Cpu" init code ...
+  ; Common initialization of the write once registers
+        ; SOPT1: COPE=0,COPT=1,STOPE=0,BKGDPE=1,RSTPE=0
         LDA     #$52
-        STA     SOPT1                                               
-        ; SPMSC1: LVDF=0,LVDACK=0,LVDIE=0,LVDRE=1,LVDSE=1,LVDE=1,BGBE=0 
+        STA     SOPT1
+        ; SPMSC1: LVDF=0,LVDACK=0,LVDIE=0,LVDRE=1,LVDSE=1,LVDE=1,BGBE=0
         LDA     #$1C
-        STA     SPMSC1                                               
-        ; SPMSC2: PDF=0,PPDF=0,PPDACK=0,PDC=0,PPDC=0 
+        STA     SPMSC1
+        ; SPMSC2: PDF=0,PPDF=0,PPDACK=0,PDC=0,PPDC=0
         CLRA
-        STA     SPMSC2                                               
-        ; SPMSC3: LVDV=0,LVWV=0 
+        STA     SPMSC2
+        ; SPMSC3: LVDV=0,LVWV=0
         LDA     SPMSC3
         AND     #$CF
         STA     SPMSC3
-  ;  System clock initialization 
+  ;  System clock initialization
         ;Test if the device trim value is stored on the specified address
         LDA     $FFAF
         CBEQA   #$FF, SkipTrim
-        ; ICSTRM: Initialize internal clock trim from a non volatile memory 
+        ; ICSTRM: Initialize internal clock trim from a non volatile memory
         LDA     $FFAF
         STA     ICSTRM
-        ; ICSSC: Initialize internal clock trim from a non volatile memory 
+        ; ICSSC: Initialize internal clock trim from a non volatile memory
         LDA     $FFAE
         STA     ICSSC
 SkipTrim:
-        ; ICSC1: CLKS=0,RDIV=0,IREFS=1,IRCLKEN=0,IREFSTEN=0 
-        MOV     #$04,ICSC1             ; Initialization of the ICS control register 1 
-        ; ICSC2: BDIV=1,RANGE=0,HGO=0,LP=0,EREFS=0,ERCLKEN=0,EREFSTEN=0 
-        MOV     #$40,ICSC2             ; Initialization of the ICS control register 2 
+        ; ICSC1: CLKS=0,RDIV=0,IREFS=1,IRCLKEN=0,IREFSTEN=0
+        MOV     #$04,ICSC1             ; Initialization of the ICS control register 1
+        ; ICSC2: BDIV=1,RANGE=0,HGO=0,LP=0,EREFS=0,ERCLKEN=0,EREFSTEN=0
+        MOV     #$40,ICSC2             ; Initialization of the ICS control register 2
 
-  ; Common initialization of the CPU registers 
-        ; PTASE: PTASE4=1,PTASE3=1,PTASE2=1,PTASE1=1,PTASE0=1 
+  ; Common initialization of the CPU registers
+        ; PTASE: PTASE4=1,PTASE3=1,PTASE2=1,PTASE1=1,PTASE0=1
         LDA     PTASE
         ORA     #$1F
         STA     PTASE
-        ; PTBSE: PTBSE7=1,PTBSE6=1,PTBSE5=1,PTBSE4=1,PTBSE3=1,PTBSE2=1,PTBSE1=1,PTBSE0=1 
+        ; PTBSE: PTBSE7=1,PTBSE6=1,PTBSE5=1,PTBSE4=1,PTBSE3=1,PTBSE2=1,PTBSE1=1,PTBSE0=1
         LDA     #$FF
-        STA     PTBSE                                               
-        ; PTADS: PTADS5=0,PTADS4=0,PTADS3=0,PTADS2=0,PTADS1=0,PTADS0=0 
+        STA     PTBSE
+        ; PTADS: PTADS5=0,PTADS4=0,PTADS3=0,PTADS2=0,PTADS1=0,PTADS0=0
         CLRA
-        STA     PTADS                                               
-        ; PTBDS: PTBDS7=0,PTBDS6=0,PTBDS5=0,PTBDS4=0,PTBDS3=0,PTBDS2=0,PTBDS1=0,PTBDS0=0 
+        STA     PTADS
+        ; PTBDS: PTBDS7=0,PTBDS6=0,PTBDS5=0,PTBDS4=0,PTBDS3=0,PTBDS2=0,PTBDS1=0,PTBDS0=0
         CLRA
-        STA     PTBDS                                               
-  ; ### Init_TPM init code 
-        ; TPMSC: TOF=0,TOIE=0,CPWMS=0,CLKSB=0,CLKSA=0,PS2=0,PS1=0,PS0=0 
-        CLR     TPMSC                  ; Stop and reset counter 
+        STA     PTBDS
+  ; ### Init_TPM init code
+        ; TPMSC: TOF=0,TOIE=0,CPWMS=0,CLKSB=0,CLKSA=0,PS2=0,PS1=0,PS0=0
+        CLR     TPMSC                  ; Stop and reset counter
         LDHX    #$00
-        STHX    TPMMOD                 ; Period value setting 
-        LDA     TPMSC                  ; Overflow int. flag clearing (first part) 
-        ; TPMSC: TOF=0,TOIE=1,CPWMS=0,CLKSB=0,CLKSA=1,PS2=0,PS1=0,PS0=0 
-        MOV     #$48,TPMSC             ; Int. flag clearing (2nd part) and timer control register setting 
-  ; ### 
-        CLI                            ; Enable interrupts 
+        STHX    TPMMOD                 ; Period value setting
+        LDA     TPMSC                  ; Overflow int. flag clearing (first part)
+        ; TPMSC: TOF=0,TOIE=1,CPWMS=0,CLKSB=0,CLKSA=1,PS2=0,PS1=0,PS0=0
+        MOV     #$48,TPMSC             ; Int. flag clearing (2nd part) and timer control register setting
+  ; ###
+        CLI                            ; Enable interrupts
 
         RTS
 
@@ -2044,7 +2044,7 @@ SkipTrim:
 ;**     Interrupt handler : isrVtpmovf
 ;**
 ;**     Description :
-;**         User interrupt service routine. 
+;**         User interrupt service routine.
 ;**     Parameters  : None
 ;**     Returns     : Nothing
 ;** ===================================================================
@@ -2055,9 +2055,9 @@ isrVtpmovf:
   			lda cntr1
   			inca
   			sta cntr1
-  			cbeqa #64,toggle          
+  			cbeqa #64,toggle
             BCLR 7,TPMSC
-        	RTI    
+        	RTI
 C_method:
 			JSR clear_display
 			JSR write_Holding_at
@@ -2087,10 +2087,10 @@ C_cooldown:
 			LDA #2
 			STA state
 			BRA toggle2
-C_heatup:			
+C_heatup:
 			LDA #1
 			STA state
-			BRA toggle2  
+			BRA toggle2
 overheat_check:
 			JSR TEC_read
 			JSR Convert_LM92_temp
@@ -2106,7 +2106,7 @@ overheat_check:
 			BRA toggle2
 C_method_jump:
 			JMP C_method
-toggle: 
+toggle:
 			LDA PTBD
 			STA PTBD_TEMP
 			LDA PTBDD
@@ -2120,21 +2120,21 @@ toggle1:
 toggle2:
 			LDA onoff
 			cbeqa #0, toggle_on
-			cbeqa #1, toggle_off 
+			cbeqa #1, toggle_off
 toggle_on:
 			LDA state
 			CBEQA #1, heat
 			CBEQA #2, cool
 			LDA #%10001000
 			STA PTBD
-			
+
 toggle_on_2:
 			LDA PTBD
 			AND #%11111111
 			STA PTBD
 			BCLR 3,PTBD
 			BSET 3,PTBD
-			
+
 			lda #0
 			sta cntr1
 			lda #1
@@ -2157,8 +2157,8 @@ cool:
 			LDA onoff
 			cbeqa #0, toggle_on_2
 			cbeqa #1, toggle_off_2
-			
-toggle_off:	
+
+toggle_off:
 			LDA state
 			CBEQA #1, heat
 			CBEQA #2, cool
@@ -2170,7 +2170,7 @@ toggle_off_2:
 			STA PTBD
 			BCLR 3,PTBD
 			BSET 3,PTBD
-			
+
 			lda #0
 			sta cntr1
 			lda #0
@@ -2182,15 +2182,15 @@ toggle_off_2:
 			BCLR 7,TPMSC
         	RTI
 
-; end of isrVtpmovf 
+; end of isrVtpmovf
 
 
 
-; Initialization of the CPU registers in FLASH 
-        ; NVPROT: FPS6=1,FPS5=1,FPS4=1,FPS3=1,FPS2=1,FPS1=1,FPS0=1,FPDIS=1 
+; Initialization of the CPU registers in FLASH
+        ; NVPROT: FPS6=1,FPS5=1,FPS4=1,FPS3=1,FPS2=1,FPS1=1,FPS0=1,FPDIS=1
         ORG     NVPROT
         DC.B    $FF
-        ; NVOPT: KEYEN=0,FNORED=1,SEC01=1,SEC00=0 
+        ; NVOPT: KEYEN=0,FNORED=1,SEC01=1,SEC00=0
         ORG     NVOPT
         DC.B    $7E
 
@@ -2198,7 +2198,7 @@ toggle_off_2:
 
         XREF    _Startup
 
-; Interrupt vector table 
+; Interrupt vector table
   ifndef UNASSIGNED_ISR
 UNASSIGNED_ISR: EQU     $FFFF          ; unassigned interrupt service routine
   endif
@@ -2229,4 +2229,3 @@ _vect:
         DC.W    UNASSIGNED_ISR         ; Int.no.  2 Virq (at FFFA)                  Unassigned
         DC.W    UNASSIGNED_ISR         ; Int.no.  1 Vswi (at FFFC)                  Unassigned
         ;DC.W    _Startup               ; Int.no.  0 Vreset (at FFFE)                Reset vector
-
